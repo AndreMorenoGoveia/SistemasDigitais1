@@ -1,13 +1,13 @@
-`timescale 1ns/1ps
+`timescale 1ms/100ns
 
 module main(t, conf, r,
             led1, led2, led3, led4);
 
 
-    /* Entradas e saídas */
+    /** Entradas e saídas **/
     input wire [11:0] t; /* t[10] é o botão inicia e t[11] o botão cancela */
     input wire conf;
-    input wire r[63:0];
+    input wire [3:0] r;
 
     output reg[6:0] led1;
     output reg[6:0] led2;
@@ -22,7 +22,7 @@ module main(t, conf, r,
     reg [3:0] h3;
     reg [3:0] h2;
     reg [3:0] h1;
-    reg en[3:0];
+    reg [3:0] en;
 
     /* Relógio Padrão */
     reg [3:0] p4;
@@ -43,12 +43,29 @@ module main(t, conf, r,
     reg confm;
 
     /* Receitas */
-    reg [15:0] r1;
+    reg [15:0] r1
+    reg r1b;
     reg [15:0] r2;
+    reg r2b;
     reg [15:0] r3;
+    reg r3b;
     reg [15:0] r4;
+    reg r4b;
+    reg [15:0] rm;
 
+    /* Relógio regressivo */
+    reg [3:0] g4;
+    reg [3:0] g3;
+    reg [3:0] g2;
+    reg [3:0] g1;
+    reg g;
+    reg clk2;
 
+    /* Clocks temporizadores */
+    reg clk3;
+    always #30000 clk1 = ~clk1; /* Configurado para alternar a cada 30s */
+    always #500 clk2 = ~clk2; /* Configurado para alternar a cada 0,5s */
+    always #250 clk3 = ~clk3; /* Configurado para alternar a cada 0,25s */
 
     /* Relações entre os modulos */
     Conversor4bits0a9 
@@ -101,7 +118,6 @@ module main(t, conf, r,
 
         end
 
-    always #30000 clk1 = ~clk1; /* Configurado para alternar a cada 30s */
 
 
     /* Contador síncrono relógio padrão */
@@ -162,45 +178,101 @@ module main(t, conf, r,
     /** Teclado **/
 
 
-
-    /* O usuário clica em algum botão de número */
-    always @ (posedge t[0] or posedge t[1] or posedge t[2] or
-            posedge t[3] or posedge t[4] or posedge t[5] or
-            posedge t[6] or posedge t[7] or posedge t[8] or
-            posedge t[9]) 
+    /* O usuário clica no botão de inicio */
+    always @(posedge ti) 
     begin
 
-        /* O usuário clica no botão de início */
-        always @ (posedge t[10]) 
+
+        
+    end
+
+    /* O usuário clica no botão de cancela */
+    always @(posedge tc) 
+    begin
+
+        if(g)
         begin
             
+        end
+        else
+        begin
 
+
+            /* Volta ao relógio padrão */
+            h1 <= p1;
+            h2 <= p2;
+            h3 <= p3;
+            h4 <= p4
 
         end
+        
+    end
 
-        /* O usuário clica no botão de cancela */
-        always @ (posedge t[11]) 
+
+
+    /* O usuário clica em algum botão de número */
+    always @ (posedge t[0])
+    begin
+
+        if(confm)
         begin
             
         end
-
-
+        
+    end
+    always @ (posedge t[1])
+    begin
+        
+    end
+    always @ (posedge t[2])
+    begin
+        
+    end
+    always @ (posedge t[3])
+    begin
+        
+    end
+    always @ (posedge t[4])
+    begin
+        
+    end
+    always @ (posedge t[5])
+    begin
+        
+    end
+    always @ (posedge t[6])
+    begin
+        
+    end
+    always @ (posedge t[7])
+    begin
+        
+    end
+    always @ (posedge t[8])
+    begin
+        
+    end
+    always @ (posedge t[9])
+    begin
+        
     end
 
 
     /* O usuário clica em um botão de receita */
-    always @ (posedge r[0] or posedge r[1] or posedge r[2] or posedge r[3])
+    always @ (posedge r[0])
     begin
 
-        /* O usuário clica no botão de inicio */
-        always @(posedge ti) begin
+        if(confm)
+        begin
             
+            rm <= r1;
+            r1b = 1'b1;
+
         end
 
-        /* O usuário clica no botão de cancela */
-        always @(posedge tc) begin
-            
-        end
+
+        /* Espera 5s antes de voltar ao relógio padrão */
+        #5000
 
     end
 
