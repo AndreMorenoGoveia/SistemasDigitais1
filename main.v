@@ -88,7 +88,6 @@ module main(t, conf, r, porta
     /* Clocks temporizadores */
     reg clk3;
     always #30000 clk1 = ~clk1; /* Configurado para alternar a cada 30s */
-    always #500 clk2 = ~clk2; /* Configurado para alternar a cada 0,5s */
     always #250 clk3 = ~clk3; /* Configurado para alternar a cada 0,25s */
 
     /** Relações entre os modulos **/
@@ -123,9 +122,9 @@ module main(t, conf, r, porta
     initial 
     begin
 
-    motor <= 1'b0;
-    aquec <= 1'b0;
-    som <= 1'b0;
+        motor <= 1'b0;
+        aquec <= 1'b0;
+        som <= 1'b0;
 
     end
 
@@ -215,63 +214,177 @@ module main(t, conf, r, porta
         end
 
 
-    /** Teclado **/
-
-
-    /* O usuário clica no botão de início */
-    always @(posedge ti) 
+    /** Relógio regressivo **/
+    always @ (estado == 4'b0101)
     begin
-
-        if(estado == 4'b0100)
+        
+        /* Contador regressivo síncrono */
+        if(g1 != 4'b0000 or g2 != 4'b0000 or g3 != 4'b0000 or g4 != 4'b0000)
         begin
-            
-            always @ (negedge clk3)
+            clk2 <= 1'b0;
+
+            always #500 clk2 <= ~clk2;
+
+            always @ (negedge clk2)
             begin
-                som <= ~som;
-                en <= ~en;
+                
+                if(g1 != 4'b0000)
+                begin
+                    g1 <= g1 - 4'b0001;
+                    h1 <= g1;
+                end
+
+                else
+                begin
+                    
+                    if(g2 != 4'b0000)
+                    begin
+                        g2 <= g2 - 4'b0001;
+                        h2 <= g2;
+                    end
+
+                    else
+                        begin
+                            
+                            if(g3 != 4'b0000)
+                            begin
+                                g3 <= g3 - 4'b0001;
+                                h3 <= g3;   
+                            end
+
+                            else
+                            begin
+                                g4 <= g4 - 4'b0001;
+                                h4 <= g4;
+
+                                g3 <= g3 - 4'b0001
+                                h3 <= g3;
+                            end
+
+                            g2 <= g2 - 4'b0001
+                            h2 <= g2;
+
+                        end
+
+
+                    g1 <= 4'b1001;
+                    h1 <= g1;
+
+                end
+
             end
 
-            #3000
- 
-            som <= 1'b0;
-            en <= 1'b1111;
-            estado <= 4'b0000;
+        end
 
-            h1 <= p1;
-            h2 <= p2;
-            h3 <= p3;
-            h4 <= p4;
+        /* Comida finalizada */
+        else
+            estado <= 4'b0110;
+
+    end
+
+    /** Comida pronta **/
+    always @ (estado == 4'b0110)
+    begin
+
+        motor <= 1'b0;
+        aquec <= 1'b0;
+        
+        always @ (negedge clk3) 
+        begin
+            
+            en <= ~en;
+            som <= ~som;
 
         end
-        
+
+        #5000
+
+        en <= 4'b1111;
+        som <= 1'b0;
+        luz <= 1'b0;
+
+        estado <= 4'b0000;
+
+        h1 <= p1;
+        h2 <= p2;
+        h3 <= p3;
+        h4 <= p4;
+
+
+    end
+
+    /** Teclado **/
+
+    /* O usuário clica no botão de início */
+    always @(posedge t[10]) 
+    begin
+
+        if(estado >= 4'b0001 and estado <= 4'b0100)
+           estado <= 4'b0101;
+
     end
 
     /* O usuário clica no botão de cancela */
-    always @(posedge tc) 
+    always @(posedge t[11]) 
     begin
 
         if(estado == 4'b0101)
         begin
             
+            if(g4 == 4'b0000)
+            begin
+                if(g3 == 4'b0000)
+                begin
+                    if(g2 == 4'b0000)
+                    begin
+                        estado <= 4'b0001;
+                        luz <= 1'b0;
+                        motor <= 1'b0;
+                        aquec <= 1'b0;
+                    end
+                    else
+                    begin
+                        estado <= 4'b0010;
+                        luz <= 1'b0;
+                        motor <= 1'b0;
+                        aquec <= 1'b0;
+                    end
+                end
+                else
+                begin
+                    estado <= 4'b0011;
+                    luz <= 1'b0;
+                    motor <= 1'b0;
+                    aquec <= 1'b0;
+                end
+            end
+            else
+            begin
+                estado <= 4'b0100;
+                luz <= 1'b0;
+                motor <= 1'b0;
+                aquec <= 1'b0;
 
+            end
+                
 
         end
 
         else if(estado != 4'b0000 and estado != 4'b0110)
         begin
             
-
+            estado <= 4'b0000;
+            h1 <= p1;
+            h2 <= p2;
+            h3 <= p3;
+            h4 <= p4;
             
         end
 
-        else
-        begin
             
-            som <= 1'b1;
-            #500
-            som <= 1'b0;
-
-        end
+        som <= 1'b1;
+        #500
+        som <= 1'b0;
         
     end
 
@@ -316,6 +429,8 @@ module main(t, conf, r, porta
 
                     estado <= 4'b0010;
 
+                    en[1] <= 1'b1;
+
                     /* Som do botão */    
                     som <= 1'b1;
                     #500
@@ -331,6 +446,8 @@ module main(t, conf, r, porta
                     h3 <= g3;
 
                     estado <= 4'b0011;
+
+                    en[2] <= 1'b1;
 
                     /* Som do botão */    
                     som <= 1'b1;
@@ -348,6 +465,8 @@ module main(t, conf, r, porta
 
                     estado <= 4'b0100;
 
+                    en[3] <= 1'b1;
+
                     som <= 1'b1;
                     #500
                     som <= 1'b0;
@@ -364,6 +483,8 @@ module main(t, conf, r, porta
 
                 estado <= 4'b1000;
 
+                en[0] <= 1'b1;
+
                 som <= 1'b1;
                 #500
                 som <= 1'b0;
@@ -378,6 +499,8 @@ module main(t, conf, r, porta
 
                 estado <= 4'b1001;
 
+                en[1] <= 1'b1;
+
                 som <= 1'b1;
                 #500
                 som <= 1'b0;
@@ -390,6 +513,8 @@ module main(t, conf, r, porta
                 h3 <= rm3;
 
                 estado <= 4'b1010;
+
+                en[2] <= 1'b1;
 
                 som <= 1'b1;
                 #500
@@ -411,6 +536,8 @@ module main(t, conf, r, porta
 
                 estado <= 4'b0000;
 
+                en[3] <= 1'b1;
+
                 som <= 1'b1;
                 #500
                 som <= 1'b0;
@@ -427,6 +554,8 @@ module main(t, conf, r, porta
 
                 estado <= 4'b1100;
 
+                en[0] <= 1'b1;
+
                 som <= 1'b1;
                 #500
                 som <= 1'b0;
@@ -442,6 +571,8 @@ module main(t, conf, r, porta
 
                 estado <= 4'b1101;
 
+                en[1] <= 1'b1;
+
                 som <= 1'b1;
                 #500
                 som <= 1'b0;
@@ -456,6 +587,8 @@ module main(t, conf, r, porta
                 h3 <= rm3;
 
                 estado <= 4'b1110;
+
+                en[2] <= 1'b1;
 
                 som <= 1'b1;
                 #500
@@ -511,6 +644,8 @@ module main(t, conf, r, porta
                 endcase
 
                 estado <= 4'b0000;
+
+                en[3] <= 1'b1;
 
                 h1 <= p1;
                 h2 <= p2;
@@ -574,6 +709,8 @@ module main(t, conf, r, porta
 
                     estado <= 4'b0010;
 
+                    en[1] <= 1'b1;
+
                     /* Som do botão */    
                     som <= 1'b1;
                     #500
@@ -589,6 +726,8 @@ module main(t, conf, r, porta
                     h3 <= g3;
 
                     estado <= 4'b0011;
+
+                    en[2] <= 1'b1;
 
                     /* Som do botão */    
                     som <= 1'b1;
@@ -606,6 +745,8 @@ module main(t, conf, r, porta
 
                     estado <= 4'b0100;
 
+                    en[3] <= 1'b1;
+
                     som <= 1'b1;
                     #500
                     som <= 1'b0;
@@ -622,6 +763,8 @@ module main(t, conf, r, porta
 
                 estado <= 4'b1000;
 
+                en[0] <= 1'b1;
+
                 som <= 1'b1;
                 #500
                 som <= 1'b0;
@@ -636,6 +779,8 @@ module main(t, conf, r, porta
 
                 estado <= 4'b1001;
 
+                en[1] <= 1'b1;
+
                 som <= 1'b1;
                 #500
                 som <= 1'b0;
@@ -648,6 +793,8 @@ module main(t, conf, r, porta
                 h3 <= rm3;
 
                 estado <= 4'b1010;
+
+                en[2] <= 1'b1;
 
                 som <= 1'b1;
                 #500
@@ -669,6 +816,8 @@ module main(t, conf, r, porta
 
                 estado <= 4'b0000;
 
+                en[3] <= 1'b1;
+
                 som <= 1'b1;
                 #500
                 som <= 1'b0;
@@ -685,6 +834,8 @@ module main(t, conf, r, porta
 
                 estado <= 4'b1100;
 
+                en[0] <= 1'b1;
+
                 som <= 1'b1;
                 #500
                 som <= 1'b0;
@@ -700,6 +851,8 @@ module main(t, conf, r, porta
 
                 estado <= 4'b1101;
 
+                en[1] <= 1'b1;
+
                 som <= 1'b1;
                 #500
                 som <= 1'b0;
@@ -714,6 +867,8 @@ module main(t, conf, r, porta
                 h3 <= rm3;
 
                 estado <= 4'b1110;
+
+                en[2] <= 1'b1;
 
                 som <= 1'b1;
                 #500
@@ -769,6 +924,8 @@ module main(t, conf, r, porta
                 endcase
 
                 estado <= 4'b0000;
+
+                en[3] <= 1'b1;
 
                 h1 <= p1;
                 h2 <= p2;
@@ -832,6 +989,8 @@ module main(t, conf, r, porta
 
                     estado <= 4'b0010;
 
+                    en[1] <= 1'b1;
+
                     /* Som do botão */    
                     som <= 1'b1;
                     #500
@@ -847,6 +1006,8 @@ module main(t, conf, r, porta
                     h3 <= g3;
 
                     estado <= 4'b0011;
+
+                    en[2] <= 1'b1;
 
                     /* Som do botão */    
                     som <= 1'b1;
@@ -864,6 +1025,8 @@ module main(t, conf, r, porta
 
                     estado <= 4'b0100;
 
+                    en[3] <= 1'b1;
+
                     som <= 1'b1;
                     #500
                     som <= 1'b0;
@@ -880,6 +1043,8 @@ module main(t, conf, r, porta
 
                 estado <= 4'b1000;
 
+                en[0] <= 1'b1;
+
                 som <= 1'b1;
                 #500
                 som <= 1'b0;
@@ -894,6 +1059,8 @@ module main(t, conf, r, porta
 
                 estado <= 4'b1001;
 
+                en[1] <= 1'b1;
+
                 som <= 1'b1;
                 #500
                 som <= 1'b0;
@@ -906,6 +1073,8 @@ module main(t, conf, r, porta
                 h3 <= rm3;
 
                 estado <= 4'b1010;
+
+                en[2] <= 1'b1;
 
                 som <= 1'b1;
                 #500
@@ -930,6 +1099,8 @@ module main(t, conf, r, porta
 
                     estado <= 4'b0000;
 
+                    en[3] <= 1'b1;
+
                 end
 
                 som <= 1'b1;
@@ -948,6 +1119,8 @@ module main(t, conf, r, porta
 
                 estado <= 4'b1100;
 
+                en[0] <= 1'b1;
+
                 som <= 1'b1;
                 #500
                 som <= 1'b0;
@@ -963,6 +1136,8 @@ module main(t, conf, r, porta
 
                 estado <= 4'b1101;
 
+                en[1] <= 1'b1;
+
                 som <= 1'b1;
                 #500
                 som <= 1'b0;
@@ -977,6 +1152,8 @@ module main(t, conf, r, porta
                 h3 <= rm3;
 
                 estado <= 4'b1110;
+
+                en[2] <= 1'b1;
 
                 som <= 1'b1;
                 #500
@@ -1032,6 +1209,8 @@ module main(t, conf, r, porta
                 endcase
 
                 estado <= 4'b0000;
+
+                en[3] <= 1'b1;
 
                 h1 <= p1;
                 h2 <= p2;
@@ -1094,6 +1273,8 @@ module main(t, conf, r, porta
 
                     estado <= 4'b0010;
 
+                    en[1] <= 1'b1;
+
                     /* Som do botão */    
                     som <= 1'b1;
                     #500
@@ -1110,6 +1291,8 @@ module main(t, conf, r, porta
 
                     estado <= 4'b0011;
 
+                    en[2] <= 1'b1;
+
                     /* Som do botão */    
                     som <= 1'b1;
                     #500
@@ -1125,6 +1308,8 @@ module main(t, conf, r, porta
                     h4 <= g4;
 
                     estado <= 4'b0100;
+                    
+                   en[3] <= 1'b1; 
 
                     som <= 1'b1;
                     #500
@@ -1142,6 +1327,8 @@ module main(t, conf, r, porta
 
                 estado <= 4'b1000;
 
+                en[0] <= 1'b1;
+
                 som <= 1'b1;
                 #500
                 som <= 1'b0;
@@ -1156,6 +1343,8 @@ module main(t, conf, r, porta
 
                 estado <= 4'b1001;
 
+                en[1] <= 1'b1;
+
                 som <= 1'b1;
                 #500
                 som <= 1'b0;
@@ -1168,6 +1357,8 @@ module main(t, conf, r, porta
                 h3 <= rm3;
 
                 estado <= 4'b1010;
+
+                en[2] <= 1'b1;
 
                 som <= 1'b1;
                 #500
@@ -1184,6 +1375,8 @@ module main(t, conf, r, porta
 
                 estado <= 4'b1100;
 
+                en[0] <= 1'b1;
+
                 som <= 1'b1;
                 #500
                 som <= 1'b0;
@@ -1199,6 +1392,8 @@ module main(t, conf, r, porta
 
                 estado <= 4'b1101;
 
+                en[1] <= 1'b1;
+
                 som <= 1'b1;
                 #500
                 som <= 1'b0;
@@ -1213,6 +1408,8 @@ module main(t, conf, r, porta
                 h3 <= rm3;
 
                 estado <= 4'b1110;
+
+                en[2] <= 1'b1;
 
                 som <= 1'b1;
                 #500
@@ -1268,6 +1465,8 @@ module main(t, conf, r, porta
                 endcase
 
                 estado <= 4'b0000;
+
+                en[3] <= 1'b1;
 
                 h1 <= p1;
                 h2 <= p2;
@@ -1330,6 +1529,8 @@ module main(t, conf, r, porta
 
                     estado <= 4'b0010;
 
+                    en[1] <= 1'b1;
+
                     /* Som do botão */    
                     som <= 1'b1;
                     #500
@@ -1345,6 +1546,8 @@ module main(t, conf, r, porta
                     h3 <= g3;
 
                     estado <= 4'b0011;
+
+                    en[2] <= 1'b1;
 
                     /* Som do botão */    
                     som <= 1'b1;
@@ -1362,6 +1565,8 @@ module main(t, conf, r, porta
 
                     estado <= 4'b0100;
 
+                    en[3] <= 1'b1;
+
                     som <= 1'b1;
                     #500
                     som <= 1'b0;
@@ -1378,6 +1583,8 @@ module main(t, conf, r, porta
 
                 estado <= 4'b1000;
 
+                en[0] <= 1'b1;
+
                 som <= 1'b1;
                 #500
                 som <= 1'b0;
@@ -1392,6 +1599,8 @@ module main(t, conf, r, porta
 
                 estado <= 4'b1001;
 
+                en[1] <= 1'b1;
+
                 som <= 1'b1;
                 #500
                 som <= 1'b0;
@@ -1405,6 +1614,8 @@ module main(t, conf, r, porta
                 h3 <= rm3;
 
                 estado <= 4'b1010;
+
+                en[2] <= 1'b1;
 
                 som <= 1'b1;
                 #500
@@ -1421,6 +1632,8 @@ module main(t, conf, r, porta
 
                 estado <= 4'b1100;
 
+                en[0] <= 1'b1;
+
                 som <= 1'b1;
                 #500
                 som <= 1'b0;
@@ -1436,6 +1649,8 @@ module main(t, conf, r, porta
 
                 estado <= 4'b1101;
 
+                en[1] <= 1'b1;
+
                 som <= 1'b1;
                 #500
                 som <= 1'b0;
@@ -1450,6 +1665,8 @@ module main(t, conf, r, porta
                 h3 <= rm3;
 
                 estado <= 4'b1110;
+
+                en[2] <= 1'b1;
 
                 som <= 1'b1;
                 #500
@@ -1505,6 +1722,8 @@ module main(t, conf, r, porta
                 endcase
 
                 estado <= 4'b0000;
+
+                en[3] <= 1'b1;
 
                 h1 <= p1;
                 h2 <= p2;
@@ -1567,6 +1786,8 @@ module main(t, conf, r, porta
 
                     estado <= 4'b0010;
 
+                    en[1] <= 1'b1;
+
                     /* Som do botão */    
                     som <= 1'b1;
                     #500
@@ -1582,6 +1803,8 @@ module main(t, conf, r, porta
                     h3 <= g3;
 
                     estado <= 4'b0011;
+
+                    en[2] <= 1'b1;
 
                     /* Som do botão */    
                     som <= 1'b1;
@@ -1599,6 +1822,8 @@ module main(t, conf, r, porta
 
                     estado <= 4'b0100;
 
+                    en[3] <= 1'b1;
+
                     som <= 1'b1;
                     #500
                     som <= 1'b0;
@@ -1615,6 +1840,8 @@ module main(t, conf, r, porta
 
                 estado <= 4'b1000;
 
+                en[0] <= 1'b1;
+
                 som <= 1'b1;
                 #500
                 som <= 1'b0;
@@ -1629,6 +1856,8 @@ module main(t, conf, r, porta
 
                 estado <= 4'b1001;
 
+                en[1] <= 1'b1;
+
                 som <= 1'b1;
                 #500
                 som <= 1'b0;
@@ -1641,6 +1870,8 @@ module main(t, conf, r, porta
                 h3 <= rm3;
 
                 estado <= 4'b1010;
+
+                en[2] <= 1'b1;
 
                 som <= 1'b1;
                 #500
@@ -1657,6 +1888,8 @@ module main(t, conf, r, porta
 
                 estado <= 4'b1100;
 
+                en[0] <= 1'b1;
+
                 som <= 1'b1;
                 #500
                 som <= 1'b0;
@@ -1672,6 +1905,8 @@ module main(t, conf, r, porta
 
                 estado <= 4'b1101;
 
+                en[1] <= 1'b1;
+
                 som <= 1'b1;
                 #500
                 som <= 1'b0;
@@ -1686,6 +1921,8 @@ module main(t, conf, r, porta
                 h3 <= rm3;
 
                 estado <= 4'b1110;
+
+                en[2] <= 1'b1;
 
                 som <= 1'b1;
                 #500
@@ -1741,6 +1978,8 @@ module main(t, conf, r, porta
                 endcase
 
                 estado <= 4'b0000;
+
+                en[3] <= 1'b1;
 
                 h1 <= p1;
                 h2 <= p2;
@@ -1803,6 +2042,8 @@ module main(t, conf, r, porta
 
                     estado <= 4'b0010;
 
+                    en[1] <= 1'b1;
+
                     /* Som do botão */    
                     som <= 1'b1;
                     #500
@@ -1818,6 +2059,8 @@ module main(t, conf, r, porta
                     h3 <= g3;
 
                     estado <= 4'b0011;
+
+                    en[2] <= 1'b1;
 
                     /* Som do botão */    
                     som <= 1'b1;
@@ -1835,6 +2078,8 @@ module main(t, conf, r, porta
 
                     estado <= 4'b0100;
 
+                    en[1] <= 1'b1;
+
                     som <= 1'b1;
                     #500
                     som <= 1'b0;
@@ -1850,6 +2095,8 @@ module main(t, conf, r, porta
                 h1 <= rm1;
 
                 estado <= 4'b1000;
+
+                en[0] <= 1'b1;
 
                 som <= 1'b1;
                 #500
@@ -1867,6 +2114,8 @@ module main(t, conf, r, porta
 
                 estado <= 4'b1010;
 
+                en[2] <= 1'b1;
+
                 som <= 1'b1;
                 #500
                 som <= 1'b0;
@@ -1881,6 +2130,8 @@ module main(t, conf, r, porta
                 h1 <= rm1;
 
                 estado <= 4'b1100;
+
+                en[0] <= 1'b1;
 
                 som <= 1'b1;
                 #500
@@ -1897,6 +2148,8 @@ module main(t, conf, r, porta
 
                 estado <= 4'b1101;
 
+                en[1] <= 1'b1;
+
                 som <= 1'b1;
                 #500
                 som <= 1'b0;
@@ -1911,6 +2164,8 @@ module main(t, conf, r, porta
                 h3 <= rm3;
 
                 estado <= 4'b1110;
+
+                en[1] <= 1'b1;
 
                 som <= 1'b1;
                 #500
@@ -1966,6 +2221,8 @@ module main(t, conf, r, porta
                 endcase
 
                 estado <= 4'b0000;
+
+                en[3] <= 1'b1;
 
                 h1 <= p1;
                 h2 <= p2;
@@ -2028,6 +2285,8 @@ module main(t, conf, r, porta
 
                     estado <= 4'b0010;
 
+                    en[1] <= 1'b1;
+
                     /* Som do botão */    
                     som <= 1'b1;
                     #500
@@ -2043,6 +2302,8 @@ module main(t, conf, r, porta
                     h3 <= g3;
 
                     estado <= 4'b0011;
+
+                    en[2] <= 1'b1;
 
                     /* Som do botão */    
                     som <= 1'b1;
@@ -2060,6 +2321,8 @@ module main(t, conf, r, porta
 
                     estado <= 4'b0100;
 
+                    en[3] <= 1'b1;
+
                     som <= 1'b1;
                     #500
                     som <= 1'b0;
@@ -2076,6 +2339,8 @@ module main(t, conf, r, porta
 
                 estado <= 4'b1000;
 
+                en[0] <= 1'b1;
+
                 som <= 1'b1;
                 #500
                 som <= 1'b0;
@@ -2089,6 +2354,8 @@ module main(t, conf, r, porta
                 h3 <= rm3;
 
                 estado <= 4'b1010;
+
+                en[2] <= 1'b1;
 
                 som <= 1'b1;
                 #500
@@ -2105,6 +2372,8 @@ module main(t, conf, r, porta
 
                 estado <= 4'b1100;
 
+                en[0] <= 1'b1;
+
                 som <= 1'b1;
                 #500
                 som <= 1'b0;
@@ -2120,6 +2389,8 @@ module main(t, conf, r, porta
 
                 estado <= 4'b1101;
 
+                en[1] <= 1'b1;
+
                 som <= 1'b1;
                 #500
                 som <= 1'b0;
@@ -2134,6 +2405,8 @@ module main(t, conf, r, porta
                 h3 <= rm3;
 
                 estado <= 4'b1110;
+
+                en[2] <= 1'b1;
 
                 som <= 1'b1;
                 #500
@@ -2189,6 +2462,8 @@ module main(t, conf, r, porta
                 endcase
 
                 estado <= 4'b0000;
+
+                en[3] <= 1'b1;
 
                 h1 <= p1;
                 h2 <= p2;
@@ -2251,6 +2526,8 @@ module main(t, conf, r, porta
 
                     estado <= 4'b0010;
 
+                    en[1] <= 1'b1;
+
                     /* Som do botão */    
                     som <= 1'b1;
                     #500
@@ -2266,6 +2543,8 @@ module main(t, conf, r, porta
                     h3 <= g3;
 
                     estado <= 4'b0011;
+
+                    en[2] <= 1'b1;
 
                     /* Som do botão */    
                     som <= 1'b1;
@@ -2283,6 +2562,8 @@ module main(t, conf, r, porta
 
                     estado <= 4'b0100;
 
+                    en[3] <= 1'b1;
+
                     som <= 1'b1;
                     #500
                     som <= 1'b0;
@@ -2299,6 +2580,8 @@ module main(t, conf, r, porta
 
                 estado <= 4'b1000;
 
+                en[0] <= 1'b1;
+
                 som <= 1'b1;
                 #500
                 som <= 1'b0;
@@ -2312,6 +2595,8 @@ module main(t, conf, r, porta
                 h3 <= rm3;
 
                 estado <= 4'b1010;
+
+                en[2] <= 1'b1;
 
                 som <= 1'b1;
                 #500
@@ -2328,6 +2613,8 @@ module main(t, conf, r, porta
 
                 estado <= 4'b1100;
 
+                en[0] <= 1'b1;
+
                 som <= 1'b1;
                 #500
                 som <= 1'b0;
@@ -2343,6 +2630,8 @@ module main(t, conf, r, porta
 
                 estado <= 4'b1101;
 
+                en[1] <= 1'b1;
+
                 som <= 1'b1;
                 #500
                 som <= 1'b0;
@@ -2357,6 +2646,8 @@ module main(t, conf, r, porta
                 h3 <= rm3;
 
                 estado <= 4'b1110;
+
+                en[2] <= 1'b1;
 
                 som <= 1'b1;
                 #500
@@ -2412,6 +2703,8 @@ module main(t, conf, r, porta
                 endcase
 
                 estado <= 4'b0000;
+
+                en[3] <= 1'b1;
 
                 h1 <= p1;
                 h2 <= p2;
@@ -2474,6 +2767,8 @@ module main(t, conf, r, porta
 
                     estado <= 4'b0010;
 
+                    en[1] <= 1'b1;
+
                     /* Som do botão */    
                     som <= 1'b1;
                     #500
@@ -2489,6 +2784,8 @@ module main(t, conf, r, porta
                     h3 <= g3;
 
                     estado <= 4'b0011;
+
+                    en[2] <= 1'b1;
 
                     /* Som do botão */    
                     som <= 1'b1;
@@ -2506,6 +2803,8 @@ module main(t, conf, r, porta
 
                     estado <= 4'b0100;
 
+                    en[3] <= 1'b1;
+
                     som <= 1'b1;
                     #500
                     som <= 1'b0;
@@ -2522,6 +2821,8 @@ module main(t, conf, r, porta
 
                 estado <= 4'b1000;
 
+                en[0] <= 1'b1;
+
                 som <= 1'b1;
                 #500
                 som <= 1'b0;
@@ -2535,6 +2836,8 @@ module main(t, conf, r, porta
                 h3 <= rm3;
 
                 estado <= 4'b1010;
+
+                en[2] <= 1'b1;
 
                 som <= 1'b1;
                 #500
@@ -2551,6 +2854,8 @@ module main(t, conf, r, porta
 
                 estado <= 4'b1100;
 
+                en[0] <= 1'b1;
+
                 som <= 1'b1;
                 #500
                 som <= 1'b0;
@@ -2566,6 +2871,8 @@ module main(t, conf, r, porta
 
                 estado <= 4'b1101;
 
+                en[1] <= 1'b1;
+
                 som <= 1'b1;
                 #500
                 som <= 1'b0;
@@ -2580,6 +2887,8 @@ module main(t, conf, r, porta
                 h3 <= rm3;
 
                 estado <= 4'b1110;
+
+                en[2] <= 1'b1;
 
                 som <= 1'b1;
                 #500
@@ -2636,6 +2945,8 @@ module main(t, conf, r, porta
 
                 estado <= 4'b0000;
 
+                en[3] <= 1'b1;
+
                 h1 <= p1;
                 h2 <= p2;
                 h3 <= p3;
@@ -2662,19 +2973,19 @@ module main(t, conf, r, porta
 
 
     /* LEDs piscando para indicar qual é o dígito sendo alterado */
-    always (estado == 4'b0001) en[1] <= clk3;
-    always (estado == 4'b0010) en[2] <= clk3;
-    always (estado == 4'b0011) en[3] <= clk3;
+    always @ (estado == 4'b0001) en[1] <= clk3;
+    always @ (estado == 4'b0010) en[2] <= clk3;
+    always @ (estado == 4'b0011) en[3] <= clk3;
 
-    always (estado == 4'b0111) en[0] <= clk3;
-    always (estado == 4'b1000) en[1] <= clk3;
-    always (estado == 4'b1001) en[2] <= clk3;
-    always (estado == 4'b1010) en[3] <= clk3;
+    always @ (estado == 4'b0111) en[0] <= clk3;
+    always @ (estado == 4'b1000) en[1] <= clk3;
+    always @ (estado == 4'b1001) en[2] <= clk3;
+    always @ (estado == 4'b1010) en[3] <= clk3;
 
-    always (estado == 4'b1011) en[0] <= clk3;
-    always (estado == 4'b1100) en[1] <= clk3;
-    always (estado == 4'b1101) en[2] <= clk3;
-    always (estado == 4'b1110) en[3] <= clk3;
+    always @ (estado == 4'b1011) en[0] <= clk3;
+    always @ (estado == 4'b1100) en[1] <= clk3;
+    always @ (estado == 4'b1101) en[2] <= clk3;
+    always @ (estado == 4'b1110) en[3] <= clk3;
 
 
     /* O usuário clica em um botão de receita */
