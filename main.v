@@ -1,6 +1,6 @@
 `timescale 1ms/100ns
 
-module main(t, conf, r, porta
+module main(t, conf, r, porta,
             led1, led2, led3, led4, luz, motor, aquec, som);
 
 
@@ -10,10 +10,10 @@ module main(t, conf, r, porta
     input wire [3:0] r;
     input wire porta;
 
-    output reg[6:0] led1;
-    output reg[6:0] led2;
-    output reg[6:0] led3;
-    output reg[6:0] led4;
+    output wire[6:0] led1;
+    output wire[6:0] led2;
+    output wire[6:0] led3;
+    output wire[6:0] led4;
     output reg luz;
     output reg motor;
     output reg aquec;
@@ -87,29 +87,30 @@ module main(t, conf, r, porta
 
     /* Clocks temporizadores */
     reg clk3;
-    always #30000 clk1 = ~clk1; /* Configurado para alternar a cada 30s */
-    always #250 clk3 = ~clk3; /* Configurado para alternar a cada 0,25s */
+    always #30000 clk1 <= ~clk1; /* Configurado para alternar a cada 30s */
+    always #500 clk2 <= ~clk2; /* Configurado para alternar a cada 0,5s */
+    always #250 clk3 <= ~clk3; /* Configurado para alternar a cada 0,25s */
 
     /** Relações entre os modulos **/
     Conversor4bits0a9 
     m1(.ain(h1[0]), .bin(h1[1]), .cin(h1[2]), .din(h1[3]), .en(en[0]),
-       .aout(led1[0]), .bout(led1[1], .cout(led1[2]), .dout(led1[3]),
-       .eout(led1[4]), .fout(led1[5]), .gout(led1[6])));
+       .aout(led1[0]), .bout(led1[1]), .cout(led1[2]), .dout(led1[3]),
+       .eout(led1[4]), .fout(led1[5]), .gout(led1[6]));
 
     Conversor4bits0a9 
-    m2(.ain(h2[0]), .bin(h2[1]), .cin(h2[2]), .din(h2[3]), .en(en[1])
-       .aout(led2[0]), .bout(led2[1], .cout(led2[2]), .dout(led2[3]),
-       .eout(led2[4]), .fout(led2[5]), .gout(led2[6])));
+    m2(.ain(h2[0]), .bin(h2[1]), .cin(h2[2]), .din(h2[3]), .en(en[1]),
+       .aout(led2[0]), .bout(led2[1]), .cout(led2[2]), .dout(led2[3]),
+       .eout(led2[4]), .fout(led2[5]), .gout(led2[6]));
 
     Conversor4bits0a9 
     m3(.ain(h3[0]), .bin(h3[1]), .cin(h3[2]), .din(h3[3]), .en(en[2]),
-       .aout(led3[0]), .bout(led3[1], .cout(led3[2]), .dout(led3[3]),
-       .eout(led3[4]), .fout(led3[5]), .gout(led3[6])));
+       .aout(led3[0]), .bout(led3[1]), .cout(led3[2]), .dout(led3[3]),
+       .eout(led3[4]), .fout(led3[5]), .gout(led3[6]));
 
     Conversor4bits0a9 
     m4(.ain(h4[0]), .bin(h4[1]), .cin(h4[2]), .din(h4[3]), .en(en[3]),
-       .aout(led4[0]), .bout(led4[1], .cout(led4[2]), .dout(led4[3]),
-       .eout(led4[4]), .fout(led4[5]), .gout(led4[6])));
+       .aout(led4[0]), .bout(led4[1]), .cout(led4[2]), .dout(led4[3]),
+       .eout(led4[4]), .fout(led4[5]), .gout(led4[6]));
 
 
     /** Luz interna **/
@@ -201,13 +202,13 @@ module main(t, conf, r, porta
                 p1 <= p1 + 4'b0001;
 
 
-            if(p)
+            if(estado == 4'b0000)
                 begin
                     
                     h1 <= p1;
                     h2 <= p2;
                     h3 <= p3;
-                    h4 <= p4
+                    h4 <= p4;
 
                 end
 
@@ -215,62 +216,54 @@ module main(t, conf, r, porta
 
 
     /** Relógio regressivo **/
-    always @ (estado == 4'b0101)
+    always @ (estado == 4'b0101, negedge clk2)
     begin
         
         /* Contador regressivo síncrono */
-        if(g1 != 4'b0000 or g2 != 4'b0000 or g3 != 4'b0000 or g4 != 4'b0000)
+        if((g1 != 4'b0000) | (g2 != 4'b0000) | (g3 != 4'b0000) | (g4 != 4'b0000))
         begin
-            clk2 <= 1'b0;
+            
+            if(g1 != 4'b0000)
+            begin
+                g1 <= g1 - 4'b0001;
+                h1 <= g1;
+            end
 
-            always #500 clk2 <= ~clk2;
-
-            always @ (negedge clk2)
+            else
             begin
                 
-                if(g1 != 4'b0000)
+                if(g2 != 4'b0000)
                 begin
-                    g1 <= g1 - 4'b0001;
-                    h1 <= g1;
+                    g2 <= g2 - 4'b0001;
+                    h2 <= g2;
                 end
 
                 else
-                begin
-                    
-                    if(g2 != 4'b0000)
                     begin
-                        g2 <= g2 - 4'b0001;
-                        h2 <= g2;
-                    end
-
-                    else
+                        
+                        if(g3 != 4'b0000)
                         begin
-                            
-                            if(g3 != 4'b0000)
-                            begin
-                                g3 <= g3 - 4'b0001;
-                                h3 <= g3;   
-                            end
-
-                            else
-                            begin
-                                g4 <= g4 - 4'b0001;
-                                h4 <= g4;
-
-                                g3 <= g3 - 4'b0001
-                                h3 <= g3;
-                            end
-
-                            g2 <= g2 - 4'b0001
-                            h2 <= g2;
-
+                            g3 <= g3 - 4'b0001;
+                            h3 <= g3;   
                         end
 
+                        else
+                        begin
+                            g4 <= g4 - 4'b0001;
+                            h4 <= g4;
 
-                    g1 <= 4'b1001;
-                    h1 <= g1;
+                            g3 <= g3 - 4'b0001;
+                            h3 <= g3;
+                        end
 
-                end
+                        g2 <= g2 - 4'b0001;
+                        h2 <= g2;
+
+                    end
+
+
+                g1 <= 4'b1001;
+                h1 <= g1;
 
             end
 
@@ -283,19 +276,20 @@ module main(t, conf, r, porta
     end
 
     /** Comida pronta **/
-    always @ (estado == 4'b0110)
-    begin
-
-        motor <= 1'b0;
-        aquec <= 1'b0;
-        
-        always @ (negedge clk3) 
+    always @ (negedge clk3, estado == 4'b0110) 
         begin
             
             en <= ~en;
             som <= ~som;
 
         end
+    always @ (estado == 4'b0110)
+    begin
+
+        motor <= 1'b0;
+        aquec <= 1'b0;
+        
+
 
         #5000
 
@@ -319,7 +313,7 @@ module main(t, conf, r, porta
     always @(posedge t[10]) 
     begin
 
-        if(estado >= 4'b0001 and estado <= 4'b0100)
+        if((estado >= 4'b0001) & (estado <= 4'b0100))
            estado <= 4'b0101;
 
     end
@@ -370,7 +364,7 @@ module main(t, conf, r, porta
 
         end
 
-        else if(estado != 4'b0000 and estado != 4'b0110)
+        else if((estado != 4'b0000) & (estado != 4'b0110))
         begin
             
             estado <= 4'b0000;
@@ -2992,56 +2986,160 @@ module main(t, conf, r, porta
     always @ (posedge r[0])
     begin
 
-        rec <= 2'b00;
+        if((estado >= 4'b0111) & (estado <= 4'b1010))
+            begin
 
-        estado <= 4'b1011;
+                rec <= 2'b00;
 
-        h1 <= r11;
-        h2 <= r12;
-        h3 <= r13;
-        h4 <= r14;
+                estado <= 4'b1011;
+
+                h1 <= r11;
+                h2 <= r12;
+                h3 <= r13;
+                h4 <= r14;
+
+            end
+        else if(estado == 4'b0000)
+        begin
+            
+            g1 <= r11;
+            g2 <= r12;
+            g3 <= r13;
+            g4 <= r14;
+
+            h1 <= r11;
+            h2 <= r12;
+            h3 <= r13;
+            h4 <= r14;
+
+            estado <= 4'b0100;
+
+        end
+
+
+        som <= 1'b1;
+        #500
+        som <= 1'b0;
 
     end
 
     always @ (posedge r[1])
     begin
 
-        rec <= 2'b01;
+        if((estado >= 4'b0111) & (estado <= 4'b1010))
+            begin
 
-        estado <= 4'b1011;
+                rec <= 2'b01;
 
-        h1 <= r21;
-        h2 <= r22;
-        h3 <= r23;
-        h4 <= r24;
+                estado <= 4'b1011;
+
+                h1 <= r21;
+                h2 <= r22;
+                h3 <= r23;
+                h4 <= r24;
+
+            end
+        else if(estado == 4'b0000)
+        begin
+            
+            g1 <= r21;
+            g2 <= r22;
+            g3 <= r23;
+            g4 <= r24;
+
+            h1 <= g1;
+            h2 <= g2;
+            h3 <= g3;
+            h4 <= g4;
+
+            estado <= 4'b0100;
+
+        end
+
+
+        som <= 1'b1;
+        #500
+        som <= 1'b0;
 
     end
 
     always @ (posedge r[2])
     begin
 
-        rec <= 2'b10;
+        if((estado >= 4'b0111) & (estado <= 4'b1010))
+            begin
 
-        estado <= 4'b1011;
+                rec <= 2'b10;
 
-        h1 <= r31;
-        h2 <= r32;
-        h3 <= r33;
-        h4 <= r34;
+                estado <= 4'b1011;
+
+                h1 <= r31;
+                h2 <= r32;
+                h3 <= r33;
+                h4 <= r34;
+
+            end
+        else if(estado == 4'b0000)
+        begin
+            
+            g1 <= r31;
+            g2 <= r32;
+            g3 <= r33;
+            g4 <= r34;
+
+            h1 <= g1;
+            h2 <= g2;
+            h3 <= g3;
+            h4 <= g4;
+
+            estado <= 4'b0100;
+
+        end
+
+
+        som <= 1'b1;
+        #500
+        som <= 1'b0;
 
     end
 
     always @ (posedge r[3])
     begin
 
-        rec <= 2'b11;
+        if((estado >= 4'b0111) & (estado <= 4'b1010))
+            begin
 
-        estado <= 4'b1011;
+                rec <= 2'b11;
 
-        h1 <= r41;
-        h2 <= r42;
-        h3 <= r43;
-        h4 <= r44;
+                estado <= 4'b1011;
+
+                h1 <= r41;
+                h2 <= r42;
+                h3 <= r43;
+                h4 <= r44;
+
+            end
+        else if(estado == 4'b0000)
+        begin
+            
+            g1 <= r41;
+            g2 <= r42;
+            g3 <= r43;
+            g4 <= r44;
+
+            h1 <= g1;
+            h2 <= g2;
+            h3 <= g3;
+            h4 <= g4;
+
+            estado <= 4'b0100;
+
+        end
+
+
+        som <= 1'b1;
+        #500
+        som <= 1'b0;
 
     end
 
@@ -3055,6 +3153,9 @@ module main(t, conf, r, porta
         if(estado == 4'b0000)            
             estado <= 0111;
 
+        som <= 1'b1;
+        #500
+        som <= 1'b0;
 
     end
 

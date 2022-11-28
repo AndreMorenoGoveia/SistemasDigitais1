@@ -6,12 +6,12 @@
 /**																						**/
 /*****************************************************************************************/
 
-module Conversor2bits0a3(ain, bin, cin, din, en,
+module Conversor4bits0a9(ain, bin, cin, din, en,
                          aout, bout, cout, dout, eout, fout, gout);
 
     
     /* Entradas e saídas */
-    input wire ain, bin, cin, din;
+    input wire ain, bin, cin, din, en;
     output wire aout, bout, cout, dout, eout, fout, gout;
 
     /* Lógica combinatória */
