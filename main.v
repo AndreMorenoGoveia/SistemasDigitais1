@@ -2741,7 +2741,9 @@ module main(t, conf, r, porta
     always @ (posedge conf) 
     begin
 
-    
+        if(estado == 4'b0000)            
+            estado <= 0111;
+
 
     end
 
