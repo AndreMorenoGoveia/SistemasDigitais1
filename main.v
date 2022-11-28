@@ -76,7 +76,7 @@ module main(t, conf, r, porta
     reg [3:0] rm1;
     reg [3:0] rm2;
     reg [3:0] rm3;
-    reg [1:0] r;
+    reg [1:0] rec;
 
     /* Relógio regressivo */
     reg [3:0] g4;
@@ -466,7 +466,7 @@ module main(t, conf, r, porta
         4'b1110:
             begin
                 
-                case(r)
+                case(rec)
 
                     2'b00:
                         begin
@@ -724,7 +724,7 @@ module main(t, conf, r, porta
         4'b1110:
             begin
                 
-                case(r)
+                case(rec)
 
                     2'b00:
                         begin
@@ -987,7 +987,7 @@ module main(t, conf, r, porta
         4'b1110:
             begin
                 
-                case(r)
+                case(rec)
 
                     2'b00:
                         begin
@@ -1223,7 +1223,7 @@ module main(t, conf, r, porta
         4'b1110:
             begin
                 
-                case(r)
+                case(rec)
 
                     2'b00:
                         begin
@@ -1460,7 +1460,7 @@ module main(t, conf, r, porta
         4'b1110:
             begin
                 
-                case(r)
+                case(rec)
 
                     2'b00:
                         begin
@@ -1696,7 +1696,7 @@ module main(t, conf, r, porta
         4'b1110:
             begin
                 
-                case(r)
+                case(rec)
 
                     2'b00:
                         begin
@@ -1921,7 +1921,7 @@ module main(t, conf, r, porta
         4'b1110:
             begin
                 
-                case(r)
+                case(rec)
 
                     2'b00:
                         begin
@@ -2144,7 +2144,7 @@ module main(t, conf, r, porta
         4'b1110:
             begin
                 
-                case(r)
+                case(rec)
 
                     2'b00:
                         begin
@@ -2367,7 +2367,7 @@ module main(t, conf, r, porta
         4'b1110:
             begin
                 
-                case(r)
+                case(rec)
 
                     2'b00:
                         begin
@@ -2590,7 +2590,7 @@ module main(t, conf, r, porta
         4'b1110:
             begin
                 
-                case(r)
+                case(rec)
 
                     2'b00:
                         begin
@@ -2681,48 +2681,67 @@ module main(t, conf, r, porta
     always @ (posedge r[0])
     begin
 
-        if(confm)
-        begin
-            
-            rm <= r1;
-            r1b = 1'b1;
+        rec <= 2'b00;
 
-        end
+        estado <= 4'b1011;
 
+        h1 <= r11;
+        h2 <= r12;
+        h3 <= r13;
+        h4 <= r14;
 
-        /* Espera 5s antes de voltar ao relógio padrão */
-        #5000
+    end
+
+    always @ (posedge r[1])
+    begin
+
+        rec <= 2'b01;
+
+        estado <= 4'b1011;
+
+        h1 <= r21;
+        h2 <= r22;
+        h3 <= r23;
+        h4 <= r24;
+
+    end
+
+    always @ (posedge r[2])
+    begin
+
+        rec <= 2'b10;
+
+        estado <= 4'b1011;
+
+        h1 <= r31;
+        h2 <= r32;
+        h3 <= r33;
+        h4 <= r34;
+
+    end
+
+    always @ (posedge r[3])
+    begin
+
+        rec <= 2'b11;
+
+        estado <= 4'b1011;
+
+        h1 <= r41;
+        h2 <= r42;
+        h3 <= r43;
+        h4 <= r44;
 
     end
 
 
     /** Configuração **/
-    initial confm = 1'b0;
 
     /* O usuário clica no botão de configuração */
     always @ (posedge conf) 
     begin
 
-      if(~confm)
-        begin
-            
-            confm = 1'b1;
-            
-            if(p | tm)
-                begin
-                    
-                    always #250 en[0] = ~en[0];/* Alterna o enable a cada 1/4 s */
-
-                    h1 <= p1;
-                    h2 <= p2;
-                    h3 <= p3;
-                    h4 <= p4;
-
-                    p = 1'b0;
-
-                end
-
-        end  
+    
 
     end
 
