@@ -1,7 +1,7 @@
 `timescale 1ms/100ns
 
-module main(t, conf, r, porta,
-            led1, led2, led3, led4, luz, motor, aquec, som);
+module maindebbug(t, conf, r, porta,
+                    led1, led2, led3, led4, luz, motor, aquec, som);
 
 
     /** Entradas e saídas **/
@@ -10,10 +10,10 @@ module main(t, conf, r, porta,
     input wire [3:0] r;
     input wire porta;
 
-    output wire[6:0] led1;
-    output wire[6:0] led2;
-    output wire[6:0] led3;
-    output wire[6:0] led4;
+    output wire[3:0] led1;
+    output wire[3:0] led2;
+    output wire[3:0] led3;
+    output wire[3:0] led4;
     output reg luz;
     output reg motor;
     output reg aquec;
@@ -91,7 +91,7 @@ module main(t, conf, r, porta,
     always #500 clk2 <= ~clk2; /* Configurado para alternar a cada 0,5s */
     always #250 clk3 <= ~clk3; /* Configurado para alternar a cada 0,25s */
 
-    /** Relações entre os modulos **/
+    /** Relações entre os módulos **/
     Conversor4bits0a9 
     m1(.ain(h1[0]), .bin(h1[1]), .cin(h1[2]), .din(h1[3]), .en(en[0]),
        .aout(led1[0]), .bout(led1[1]), .cout(led1[2]), .dout(led1[3]),
@@ -129,32 +129,31 @@ module main(t, conf, r, porta,
 
     end
 
-
-    /** Visor **/
-    initial
-        begin
-
-            h4 <= 4'b0010;
-            h3 <= 4'b1001;
-            h2 <= 4'b0101;
-            h1 <= 4'b1001;
-            en <= 4'b1111;
-
-        end
-
-
-
     /** Relógio padrão **/
 
     initial
         begin
 
             p4 <= 4'b0010;
-            p3 <= 4'b1001;
+            p3 <= 4'b0011;
             p2 <= 4'b0101;
             p1 <= 4'b1001;
-            clk1 <= 1'b0;
+
             estado <= 4'b0000;
+
+            clk1 <= 1'b0;
+            clk2 <= 1'b0;
+            clk3 <= 1'b0;
+
+            #1
+
+            h4 <= p4;
+            h3 <= p3;
+            h2 <= p2;
+            h1 <= p1;
+
+            en <= 4'b1111;
+
 
         end
 
@@ -168,7 +167,6 @@ module main(t, conf, r, porta,
             if(p1 == 4'b1001)
                 begin
     
-                    p2 <= p2 + 4'b0001;
                     if(p2 == 4'b0101)
                         begin
                             
@@ -195,7 +193,7 @@ module main(t, conf, r, porta,
                     else
                         p2 <= p2 + 4'b0001;
 
-                    p1 = 4'b0000;
+                    p1 <= 4'b0000;
 
                 end
             else
@@ -204,6 +202,8 @@ module main(t, conf, r, porta,
 
             if(estado == 4'b0000)
                 begin
+
+                    #1
                     
                     h1 <= p1;
                     h2 <= p2;
@@ -216,71 +216,98 @@ module main(t, conf, r, porta,
 
 
     /** Relógio regressivo **/
-    always @ (estado == 4'b0101, negedge clk2)
+    always @ (negedge clk2)
     begin
         
-        /* Contador regressivo síncrono */
-        if((g1 != 4'b0000) | (g2 != 4'b0000) | (g3 != 4'b0000) | (g4 != 4'b0000))
-        begin
-            
-            if(g1 != 4'b0000)
-            begin
-                g1 <= g1 - 4'b0001;
-                h1 <= g1;
-            end
 
-            else
+        if(estado == 4'b0101)
+        begin
+            /* Contador regressivo síncrono */
+            if((g1 != 4'b0000) | (g2 != 4'b0000) | (g3 != 4'b0000) | (g4 != 4'b0000))
             begin
                 
-                if(g2 != 4'b0000)
+                if(g1 != 4'b0000)
                 begin
-                    g2 <= g2 - 4'b0001;
-                    h2 <= g2;
+                    g1 <= g1 - 4'b0001;
+                    #1
+                    h1 <= g1;
                 end
 
                 else
+                begin
+                    
+                    if(g2 != 4'b0000)
                     begin
-                        
-                        if(g3 != 4'b0000)
-                        begin
-                            g3 <= g3 - 4'b0001;
-                            h3 <= g3;   
-                        end
-
-                        else
-                        begin
-                            g4 <= g4 - 4'b0001;
-                            h4 <= g4;
-
-                            g3 <= g3 - 4'b0001;
-                            h3 <= g3;
-                        end
-
                         g2 <= g2 - 4'b0001;
+                        #1
                         h2 <= g2;
-
                     end
 
+                    else
+                        begin
+                            
+                            if(g3 != 4'b0000)
+                            begin
+                                g3 <= g3 - 4'b0001;
+                                #1
+                                h3 <= g3;   
+                            end
 
-                g1 <= 4'b1001;
-                h1 <= g1;
+                            else
+                            begin
+                                if(g4 != 4'b0000)
+                                begin
+                                    g4 <= g4 - 4'b0001;
+                                    #1
+                                    h4 <= g4;
+                                end
+                                else
+                                begin
+                                    g4 <= 4'b1001;
+                                    #1
+                                    h4 <= g4;
+                                end
+
+
+                                g3 <= 4'b1001;
+                                #1
+                                h3 <= g3;
+                            end
+
+                            g2 <= 4'b1001;
+                            #1
+                            h2 <= g2;
+
+                        end
+
+
+                    g1 <= 4'b1001;
+                    #1
+                    h1 <= g1;
+
+                end
 
             end
 
+            /* Comida finalizada */
+            else
+                estado <= 4'b0110;
+
+
         end
 
-        /* Comida finalizada */
-        else
-            estado <= 4'b0110;
 
     end
 
     /** Comida pronta **/
-    always @ (negedge clk3, estado == 4'b0110) 
+    always @ (negedge clk3) 
         begin
-            
-            en <= ~en;
-            som <= ~som;
+
+            if(estado == 4'b0110)
+            begin
+                en <= ~en;
+                som <= ~som;
+            end
 
         end
     always @ (estado == 4'b0110)
@@ -400,6 +427,8 @@ module main(t, conf, r, porta,
                     g3 <= 4'b0000;
                     g4 <= 4'b0000;
 
+                    #1
+
                     h1 <= g1;
                     h2 <= g2;
                     h3 <= g3;
@@ -419,6 +448,8 @@ module main(t, conf, r, porta,
                     
                     g2 <= 4'd0;
 
+                    #1
+
                     h2 <= g2;
 
                     estado <= 4'b0010;
@@ -436,6 +467,8 @@ module main(t, conf, r, porta,
                 begin
                     
                     g3 <= 4'd0;
+
+                    #1
 
                     h3 <= g3;
 
@@ -455,6 +488,8 @@ module main(t, conf, r, porta,
                     
                     g4 <= 4'd0;
 
+                    #1
+
                     h4 <= g4;
 
                     estado <= 4'b0100;
@@ -473,6 +508,8 @@ module main(t, conf, r, porta,
             
                 rm1 <= 4'd0;
 
+                #1
+
                 h1 <= rm1;
 
                 estado <= 4'b1000;
@@ -489,6 +526,8 @@ module main(t, conf, r, porta,
             begin
                 rm2 <= 4'd0;
 
+                #1
+
                 h2 <= rm2;
 
                 estado <= 4'b1001;
@@ -503,6 +542,8 @@ module main(t, conf, r, porta,
         4'b1001:
             begin
                 rm3 <= 4'd0;
+
+                #1
 
                 h3 <= rm3;
 
@@ -522,6 +563,8 @@ module main(t, conf, r, porta,
                 p2 <= rm2;
                 p3 <= rm3;
                 p4 <= 4'd0;
+
+                #1
 
                 h1 <= p1;
                 h2 <= p2;
@@ -544,6 +587,8 @@ module main(t, conf, r, porta,
                 
                 rm1 <= 4'd0;
 
+                #1
+
                 h1 <= rm1;
 
                 estado <= 4'b1100;
@@ -561,6 +606,8 @@ module main(t, conf, r, porta,
                 
                 rm2 <= 4'd0;
 
+                #1
+
                 h2 <= rm2;
 
                 estado <= 4'b1101;
@@ -577,6 +624,8 @@ module main(t, conf, r, porta,
             begin
                 
                 rm3 <= 4'd0;
+
+                #1
 
                 h3 <= rm3;
 
@@ -680,6 +729,8 @@ module main(t, conf, r, porta,
                     g3 <= 4'b0000;
                     g4 <= 4'b0000;
 
+                    #1
+
                     h1 <= g1;
                     h2 <= g2;
                     h3 <= g3;
@@ -699,6 +750,8 @@ module main(t, conf, r, porta,
                     
                     g2 <= 4'd1;
 
+                    #1
+
                     h2 <= g2;
 
                     estado <= 4'b0010;
@@ -716,6 +769,8 @@ module main(t, conf, r, porta,
                 begin
                     
                     g3 <= 4'd1;
+
+                    #1
 
                     h3 <= g3;
 
@@ -735,6 +790,8 @@ module main(t, conf, r, porta,
                     
                     g4 <= 4'd1;
 
+                    #1
+
                     h4 <= g4;
 
                     estado <= 4'b0100;
@@ -753,6 +810,8 @@ module main(t, conf, r, porta,
             
                 rm1 <= 4'd1;
 
+                #1
+
                 h1 <= rm1;
 
                 estado <= 4'b1000;
@@ -769,6 +828,8 @@ module main(t, conf, r, porta,
             begin
                 rm2 <= 4'd1;
 
+                #1
+
                 h2 <= rm2;
 
                 estado <= 4'b1001;
@@ -783,6 +844,8 @@ module main(t, conf, r, porta,
         4'b1001:
             begin
                 rm3 <= 4'd1;
+
+                #1
 
                 h3 <= rm3;
 
@@ -802,6 +865,8 @@ module main(t, conf, r, porta,
                 p2 <= rm2;
                 p3 <= rm3;
                 p4 <= 4'd1;
+
+                #1
 
                 h1 <= p1;
                 h2 <= p2;
@@ -824,6 +889,8 @@ module main(t, conf, r, porta,
                 
                 rm1 <= 4'd1;
 
+                #1
+
                 h1 <= rm1;
 
                 estado <= 4'b1100;
@@ -841,6 +908,8 @@ module main(t, conf, r, porta,
                 
                 rm2 <= 4'd1;
 
+                #1
+
                 h2 <= rm2;
 
                 estado <= 4'b1101;
@@ -857,6 +926,8 @@ module main(t, conf, r, porta,
             begin
                 
                 rm3 <= 4'd1;
+
+                #1
 
                 h3 <= rm3;
 
@@ -960,6 +1031,8 @@ module main(t, conf, r, porta,
                     g3 <= 4'b0000;
                     g4 <= 4'b0000;
 
+                    #1
+
                     h1 <= g1;
                     h2 <= g2;
                     h3 <= g3;
@@ -979,6 +1052,8 @@ module main(t, conf, r, porta,
                     
                     g2 <= 4'd2;
 
+                    #1
+
                     h2 <= g2;
 
                     estado <= 4'b0010;
@@ -996,6 +1071,8 @@ module main(t, conf, r, porta,
                 begin
                     
                     g3 <= 4'd2;
+
+                    #1
 
                     h3 <= g3;
 
@@ -1015,6 +1092,8 @@ module main(t, conf, r, porta,
                     
                     g4 <= 4'd2;
 
+                    #1
+
                     h4 <= g4;
 
                     estado <= 4'b0100;
@@ -1033,6 +1112,8 @@ module main(t, conf, r, porta,
             
                 rm1 <= 4'd2;
 
+                #1
+
                 h1 <= rm1;
 
                 estado <= 4'b1000;
@@ -1049,6 +1130,8 @@ module main(t, conf, r, porta,
             begin
                 rm2 <= 4'd2;
 
+                #1
+
                 h2 <= rm2;
 
                 estado <= 4'b1001;
@@ -1063,6 +1146,8 @@ module main(t, conf, r, porta,
         4'b1001:
             begin
                 rm3 <= 4'd2;
+
+                #1
 
                 h3 <= rm3;
 
@@ -1085,6 +1170,8 @@ module main(t, conf, r, porta,
                     p2 <= rm2;
                     p3 <= rm3;
                     p4 <= 4'd2;
+
+                    #1
 
                     h1 <= p1;
                     h2 <= p2;
@@ -1109,6 +1196,8 @@ module main(t, conf, r, porta,
                 
                 rm1 <= 4'd2;
 
+                #1
+
                 h1 <= rm1;
 
                 estado <= 4'b1100;
@@ -1126,6 +1215,8 @@ module main(t, conf, r, porta,
                 
                 rm2 <= 4'd2;
 
+                #1
+
                 h2 <= rm2;
 
                 estado <= 4'b1101;
@@ -1142,6 +1233,8 @@ module main(t, conf, r, porta,
             begin
                 
                 rm3 <= 4'd2;
+
+                #1
 
                 h3 <= rm3;
 
@@ -1244,6 +1337,8 @@ module main(t, conf, r, porta,
                     g3 <= 4'b0000;
                     g4 <= 4'b0000;
 
+                    #1
+
                     h1 <= g1;
                     h2 <= g2;
                     h3 <= g3;
@@ -1263,6 +1358,8 @@ module main(t, conf, r, porta,
                     
                     g2 <= 4'd3;
 
+                    #1
+
                     h2 <= g2;
 
                     estado <= 4'b0010;
@@ -1280,6 +1377,8 @@ module main(t, conf, r, porta,
                 begin
                     
                     g3 <= 4'd3;
+
+                    #1
 
                     h3 <= g3;
 
@@ -1299,6 +1398,8 @@ module main(t, conf, r, porta,
                     
                     g4 <= 4'd3;
 
+                    #1
+
                     h4 <= g4;
 
                     estado <= 4'b0100;
@@ -1317,6 +1418,8 @@ module main(t, conf, r, porta,
             
                 rm1 <= 4'd3;
 
+                #1
+
                 h1 <= rm1;
 
                 estado <= 4'b1000;
@@ -1333,6 +1436,8 @@ module main(t, conf, r, porta,
             begin
                 rm2 <= 4'd3;
 
+                #1
+
                 h2 <= rm2;
 
                 estado <= 4'b1001;
@@ -1347,6 +1452,8 @@ module main(t, conf, r, porta,
         4'b1001:
             begin
                 rm3 <= 4'd3;
+
+                #1
 
                 h3 <= rm3;
 
@@ -1365,6 +1472,8 @@ module main(t, conf, r, porta,
                 
                 rm1 <= 4'd3;
 
+                #1
+
                 h1 <= rm1;
 
                 estado <= 4'b1100;
@@ -1382,6 +1491,8 @@ module main(t, conf, r, porta,
                 
                 rm2 <= 4'd3;
 
+                #1
+
                 h2 <= rm2;
 
                 estado <= 4'b1101;
@@ -1398,6 +1509,8 @@ module main(t, conf, r, porta,
             begin
                 
                 rm3 <= 4'd3;
+
+                #1
 
                 h3 <= rm3;
 
@@ -1500,6 +1613,8 @@ module main(t, conf, r, porta,
                     g3 <= 4'b0000;
                     g4 <= 4'b0000;
 
+                    #1
+
                     h1 <= g1;
                     h2 <= g2;
                     h3 <= g3;
@@ -1519,6 +1634,8 @@ module main(t, conf, r, porta,
                     
                     g2 <= 4'd4;
 
+                    #1
+
                     h2 <= g2;
 
                     estado <= 4'b0010;
@@ -1536,6 +1653,8 @@ module main(t, conf, r, porta,
                 begin
                     
                     g3 <= 4'd4;
+
+                    #1
 
                     h3 <= g3;
 
@@ -1555,6 +1674,8 @@ module main(t, conf, r, porta,
                     
                     g4 <= 4'd4;
 
+                    #1
+
                     h4 <= g4;
 
                     estado <= 4'b0100;
@@ -1573,6 +1694,8 @@ module main(t, conf, r, porta,
             
                 rm1 <= 4'd4;
 
+                #1
+
                 h1 <= rm1;
 
                 estado <= 4'b1000;
@@ -1589,6 +1712,8 @@ module main(t, conf, r, porta,
             begin
                 rm2 <= 4'd4;
 
+                #1
+
                 h2 <= rm2;
 
                 estado <= 4'b1001;
@@ -1604,6 +1729,8 @@ module main(t, conf, r, porta,
             begin
 
                 rm3 <= 4'd4;
+
+                #1
 
                 h3 <= rm3;
 
@@ -1622,6 +1749,8 @@ module main(t, conf, r, porta,
                 
                 rm1 <= 4'd4;
 
+                #1
+
                 h1 <= rm1;
 
                 estado <= 4'b1100;
@@ -1639,6 +1768,8 @@ module main(t, conf, r, porta,
                 
                 rm2 <= 4'd4;
 
+                #1
+
                 h2 <= rm2;
 
                 estado <= 4'b1101;
@@ -1655,6 +1786,8 @@ module main(t, conf, r, porta,
             begin
                 
                 rm3 <= 4'd4;
+
+                #1
 
                 h3 <= rm3;
 
@@ -1757,6 +1890,8 @@ module main(t, conf, r, porta,
                     g3 <= 4'b0000;
                     g4 <= 4'b0000;
 
+                    #1
+
                     h1 <= g1;
                     h2 <= g2;
                     h3 <= g3;
@@ -1776,6 +1911,8 @@ module main(t, conf, r, porta,
                     
                     g2 <= 4'd5;
 
+                    #1
+
                     h2 <= g2;
 
                     estado <= 4'b0010;
@@ -1793,6 +1930,8 @@ module main(t, conf, r, porta,
                 begin
                     
                     g3 <= 4'd5;
+
+                    #1
 
                     h3 <= g3;
 
@@ -1812,6 +1951,8 @@ module main(t, conf, r, porta,
                     
                     g4 <= 4'd5;
 
+                    #1
+
                     h4 <= g4;
 
                     estado <= 4'b0100;
@@ -1830,6 +1971,8 @@ module main(t, conf, r, porta,
             
                 rm1 <= 4'd5;
 
+                #1
+
                 h1 <= rm1;
 
                 estado <= 4'b1000;
@@ -1846,6 +1989,8 @@ module main(t, conf, r, porta,
             begin
                 rm2 <= 4'd5;
 
+                #1
+
                 h2 <= rm2;
 
                 estado <= 4'b1001;
@@ -1860,6 +2005,8 @@ module main(t, conf, r, porta,
         4'b1001:
             begin
                 rm3 <= 4'd5;
+
+                #1
 
                 h3 <= rm3;
 
@@ -1878,6 +2025,8 @@ module main(t, conf, r, porta,
                 
                 rm1 <= 4'd5;
 
+                #1
+
                 h1 <= rm1;
 
                 estado <= 4'b1100;
@@ -1895,6 +2044,8 @@ module main(t, conf, r, porta,
                 
                 rm2 <= 4'd5;
 
+                #1
+
                 h2 <= rm2;
 
                 estado <= 4'b1101;
@@ -1911,6 +2062,8 @@ module main(t, conf, r, porta,
             begin
                 
                 rm3 <= 4'd5;
+
+                #1
 
                 h3 <= rm3;
 
@@ -2013,6 +2166,8 @@ module main(t, conf, r, porta,
                     g3 <= 4'b0000;
                     g4 <= 4'b0000;
 
+                    #1
+
                     h1 <= g1;
                     h2 <= g2;
                     h3 <= g3;
@@ -2032,6 +2187,8 @@ module main(t, conf, r, porta,
                     
                     g2 <= 4'd6;
 
+                    #1
+
                     h2 <= g2;
 
                     estado <= 4'b0010;
@@ -2049,6 +2206,8 @@ module main(t, conf, r, porta,
                 begin
                     
                     g3 <= 4'd6;
+
+                    #1
 
                     h3 <= g3;
 
@@ -2068,6 +2227,8 @@ module main(t, conf, r, porta,
                     
                     g4 <= 4'd6;
 
+                    #1
+
                     h4 <= g4;
 
                     estado <= 4'b0100;
@@ -2085,6 +2246,8 @@ module main(t, conf, r, porta,
             begin
             
                 rm1 <= 4'd6;
+
+                #1
 
                 h1 <= rm1;
 
@@ -2104,6 +2267,8 @@ module main(t, conf, r, porta,
             begin
                 rm3 <= 4'd6;
 
+                #1
+
                 h3 <= rm3;
 
                 estado <= 4'b1010;
@@ -2120,6 +2285,8 @@ module main(t, conf, r, porta,
             begin
                 
                 rm1 <= 4'd6;
+
+                #1
 
                 h1 <= rm1;
 
@@ -2138,6 +2305,8 @@ module main(t, conf, r, porta,
                 
                 rm2 <= 4'd6;
 
+                #1
+
                 h2 <= rm2;
 
                 estado <= 4'b1101;
@@ -2154,6 +2323,8 @@ module main(t, conf, r, porta,
             begin
                 
                 rm3 <= 4'd6;
+
+                #1
 
                 h3 <= rm3;
 
@@ -2256,6 +2427,8 @@ module main(t, conf, r, porta,
                     g3 <= 4'b0000;
                     g4 <= 4'b0000;
 
+                    #1
+
                     h1 <= g1;
                     h2 <= g2;
                     h3 <= g3;
@@ -2275,6 +2448,8 @@ module main(t, conf, r, porta,
                     
                     g2 <= 4'd7;
 
+                    #1
+
                     h2 <= g2;
 
                     estado <= 4'b0010;
@@ -2292,6 +2467,8 @@ module main(t, conf, r, porta,
                 begin
                     
                     g3 <= 4'd7;
+
+                    #1
 
                     h3 <= g3;
 
@@ -2311,6 +2488,8 @@ module main(t, conf, r, porta,
                     
                     g4 <= 4'd7;
 
+                    #1
+
                     h4 <= g4;
 
                     estado <= 4'b0100;
@@ -2329,6 +2508,8 @@ module main(t, conf, r, porta,
             
                 rm1 <= 4'd7;
 
+                #1
+
                 h1 <= rm1;
 
                 estado <= 4'b1000;
@@ -2344,6 +2525,8 @@ module main(t, conf, r, porta,
         4'b1001:
             begin
                 rm3 <= 4'd7;
+
+                #1
 
                 h3 <= rm3;
 
@@ -2362,6 +2545,8 @@ module main(t, conf, r, porta,
                 
                 rm1 <= 4'd7;
 
+                #1
+
                 h1 <= rm1;
 
                 estado <= 4'b1100;
@@ -2379,6 +2564,8 @@ module main(t, conf, r, porta,
                 
                 rm2 <= 4'd7;
 
+                #1
+
                 h2 <= rm2;
 
                 estado <= 4'b1101;
@@ -2395,6 +2582,8 @@ module main(t, conf, r, porta,
             begin
                 
                 rm3 <= 4'd7;
+
+                #1
 
                 h3 <= rm3;
 
@@ -2497,6 +2686,8 @@ module main(t, conf, r, porta,
                     g3 <= 4'b0000;
                     g4 <= 4'b0000;
 
+                    #1
+
                     h1 <= g1;
                     h2 <= g2;
                     h3 <= g3;
@@ -2516,6 +2707,8 @@ module main(t, conf, r, porta,
                     
                     g2 <= 4'd8;
 
+                    #1
+
                     h2 <= g2;
 
                     estado <= 4'b0010;
@@ -2533,6 +2726,8 @@ module main(t, conf, r, porta,
                 begin
                     
                     g3 <= 4'd8;
+
+                    #1
 
                     h3 <= g3;
 
@@ -2552,6 +2747,8 @@ module main(t, conf, r, porta,
                     
                     g4 <= 4'd8;
 
+                    #1
+
                     h4 <= g4;
 
                     estado <= 4'b0100;
@@ -2570,6 +2767,8 @@ module main(t, conf, r, porta,
             
                 rm1 <= 4'd8;
 
+                #1
+
                 h1 <= rm1;
 
                 estado <= 4'b1000;
@@ -2585,6 +2784,8 @@ module main(t, conf, r, porta,
         4'b1001:
             begin
                 rm3 <= 4'd8;
+
+                #1
 
                 h3 <= rm3;
 
@@ -2603,6 +2804,8 @@ module main(t, conf, r, porta,
                 
                 rm1 <= 4'd8;
 
+                #1
+
                 h1 <= rm1;
 
                 estado <= 4'b1100;
@@ -2620,6 +2823,8 @@ module main(t, conf, r, porta,
                 
                 rm2 <= 4'd8;
 
+                #1
+
                 h2 <= rm2;
 
                 estado <= 4'b1101;
@@ -2636,6 +2841,8 @@ module main(t, conf, r, porta,
             begin
                 
                 rm3 <= 4'd8;
+
+                #1
 
                 h3 <= rm3;
 
@@ -2738,6 +2945,8 @@ module main(t, conf, r, porta,
                     g3 <= 4'b0000;
                     g4 <= 4'b0000;
 
+                    #1
+
                     h1 <= g1;
                     h2 <= g2;
                     h3 <= g3;
@@ -2757,6 +2966,8 @@ module main(t, conf, r, porta,
                     
                     g2 <= 4'd9;
 
+                    #1
+
                     h2 <= g2;
 
                     estado <= 4'b0010;
@@ -2774,6 +2985,8 @@ module main(t, conf, r, porta,
                 begin
                     
                     g3 <= 4'd9;
+
+                    #1
 
                     h3 <= g3;
 
@@ -2793,6 +3006,8 @@ module main(t, conf, r, porta,
                     
                     g4 <= 4'd9;
 
+                    #1
+
                     h4 <= g4;
 
                     estado <= 4'b0100;
@@ -2811,6 +3026,8 @@ module main(t, conf, r, porta,
             
                 rm1 <= 4'd9;
 
+                #1
+
                 h1 <= rm1;
 
                 estado <= 4'b1000;
@@ -2826,6 +3043,8 @@ module main(t, conf, r, porta,
         4'b1001:
             begin
                 rm3 <= 4'd9;
+
+                #1
 
                 h3 <= rm3;
 
@@ -2844,6 +3063,8 @@ module main(t, conf, r, porta,
                 
                 rm1 <= 4'd9;
 
+                #1
+
                 h1 <= rm1;
 
                 estado <= 4'b1100;
@@ -2861,6 +3082,8 @@ module main(t, conf, r, porta,
                 
                 rm2 <= 4'd9;
 
+                #1
+
                 h2 <= rm2;
 
                 estado <= 4'b1101;
@@ -2877,6 +3100,8 @@ module main(t, conf, r, porta,
             begin
                 
                 rm3 <= 4'd9;
+
+                #1
 
                 h3 <= rm3;
 
@@ -2982,6 +3207,36 @@ module main(t, conf, r, porta,
     always @ (estado == 4'b1110) en[3] <= clk3;
 
 
+    /** Receita **/
+    initial
+    begin
+
+        /* Receita 1 tem valor padrão de 1 minuto */
+        r11 <= 4'b0000;
+        r12 <= 4'b0000;
+        r13 <= 4'b0001;
+        r14 <= 4'b0000;
+
+        /* Receita 2 tem valor padrão de 2 minutos */
+        r21 <= 4'b0000;
+        r22 <= 4'b0000;
+        r23 <= 4'b0010;
+        r24 <= 4'b0000;
+
+        /* Receita 3 tem valor padrão de 3 minutos */
+        r31 <= 4'b0000;
+        r32 <= 4'b0000;
+        r33 <= 4'b0011;
+        r34 <= 4'b0000;
+
+        /* Receita 4 tem valor padrão de 4 minutos */
+        r41 <= 4'b0000;
+        r42 <= 4'b0000;
+        r43 <= 4'b0100;
+        r44 <= 4'b0000; 
+
+    end
+
     /* O usuário clica em um botão de receita */
     always @ (posedge r[0])
     begin
@@ -3047,6 +3302,8 @@ module main(t, conf, r, porta,
             g3 <= r23;
             g4 <= r24;
 
+            #1
+
             h1 <= g1;
             h2 <= g2;
             h3 <= g3;
@@ -3087,6 +3344,8 @@ module main(t, conf, r, porta,
             g3 <= r33;
             g4 <= r34;
 
+            #1
+
             h1 <= g1;
             h2 <= g2;
             h3 <= g3;
@@ -3126,6 +3385,8 @@ module main(t, conf, r, porta,
             g2 <= r42;
             g3 <= r43;
             g4 <= r44;
+
+            #1
 
             h1 <= g1;
             h2 <= g2;
