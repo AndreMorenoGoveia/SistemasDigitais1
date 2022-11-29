@@ -1,19 +1,19 @@
 `timescale 1ms/100ns
 
-module maindebbug(t, conf, r, porta,
+module main(t, conf, r, porta,
                     led1, led2, led3, led4, luz, motor, aquec, som);
 
 
-    /** Entradas e saídas **/
+    /*** Entradas e saídas ***/
     input wire [11:0] t; /* t[10] é o botão inicia e t[11] o botão cancela */
     input wire conf;
     input wire [3:0] r;
     input wire porta;
 
-    output wire[3:0] led1;
-    output wire[3:0] led2;
-    output wire[3:0] led3;
-    output wire[3:0] led4;
+    output wire[6:0] led1;
+    output wire[6:0] led2;
+    output wire[6:0] led3;
+    output wire[6:0] led4;
     output reg luz;
     output reg motor;
     output reg aquec;
@@ -21,9 +21,11 @@ module maindebbug(t, conf, r, porta,
 
 
 
-    /** Declaração dos elementos **/
 
-    /* Estados
+
+    /*** Declaração dos elementos ***/
+
+    /** Estados
        0000 - Relógio padrão
        0001 - Seleção de contagem 1
        0010 - Seleção de contagem 2
@@ -39,24 +41,48 @@ module maindebbug(t, conf, r, porta,
        1100 - Configuração de receita 2
        1101 - Configuração da receita 3
        1110 - Configuração de receita 4
-    */
+    **/
     reg [4:0] estado;
 
-    /* Visor */
+
+
+    /** Luz interna **/
+    /* Auxiliares */
+    reg luz1;
+    reg luz2;
+
+
+
+    /** Visor **/
     reg [3:0] h4;
     reg [3:0] h3;
     reg [3:0] h2;
     reg [3:0] h1;
     reg [3:0] en;
 
-    /* Relógio Padrão */
+    /* Auxiliares */
+    reg [4:0] h4a1;
+    reg [4:0] h3a1;
+    reg [4:0] h2a1;
+    reg [4:0] h1a1;
+
+
+
+    /** Relógio Padrão **/
     reg [3:0] p4;
     reg [3:0] p3;
     reg [3:0] p2;
     reg [3:0] p1;
-    reg clk1;
 
-    /* Receitas */
+    /* Auxiliares */
+    reg [4:0] p4a1;
+    reg [4:0] p3a1;
+    reg [4:0] p2a1;
+    reg [4:0] p1a1;
+
+
+
+    /** Receitas **/
     reg [3:0] r11;
     reg [3:0] r12;
     reg [3:0] r13;
@@ -78,32 +104,37 @@ module maindebbug(t, conf, r, porta,
     reg [3:0] rm3;
     reg [1:0] rec;
 
-    /* Relógio regressivo */
+
+
+    /** Relógio regressivo **/
     reg [3:0] g4;
     reg [3:0] g3;
     reg [3:0] g2;
     reg [3:0] g1;
-    reg clk2;
+    /* Auxiliares */
 
-    /* Clocks temporizadores */
-    reg clk3;
-    always #30000 clk1 <= ~clk1; /* Configurado para alternar a cada 30s */
-    always #500 clk2 <= ~clk2; /* Configurado para alternar a cada 0,5s */
-    always #250 clk3 <= ~clk3; /* Configurado para alternar a cada 0,25s */
 
-    /** Relações entre os módulos **/
+
+    /** Clock temporizador **/
+    reg clk;
+
+
+
+
+
+    /*** Conversão das dos números em 4 bits para o LED 7 segmentos ***/
     Conversor4bits0a9 
-    m1(.ain(h1[0]), .bin(h1[1]), .cin(h1[2]), .din(h1[3]), .en(en[0]),
+    m1(.ain(h1[3]), .bin(h1[2]), .cin(h1[1]), .din(h1[0]), .en(en[0]),
        .aout(led1[0]), .bout(led1[1]), .cout(led1[2]), .dout(led1[3]),
        .eout(led1[4]), .fout(led1[5]), .gout(led1[6]));
 
     Conversor4bits0a9 
-    m2(.ain(h2[0]), .bin(h2[1]), .cin(h2[2]), .din(h2[3]), .en(en[1]),
+    m2(.ain(h2[3]), .bin(h2[2]), .cin(h2[1]), .din(h2[0]), .en(en[1]),
        .aout(led2[0]), .bout(led2[1]), .cout(led2[2]), .dout(led2[3]),
        .eout(led2[4]), .fout(led2[5]), .gout(led2[6]));
 
     Conversor4bits0a9 
-    m3(.ain(h3[0]), .bin(h3[1]), .cin(h3[2]), .din(h3[3]), .en(en[2]),
+    m3(.ain(h3[3]), .bin(h3[2]), .cin(h3[1]), .din(h3[0]), .en(en[2]),
        .aout(led3[0]), .bout(led3[1]), .cout(led3[2]), .dout(led3[3]),
        .eout(led3[4]), .fout(led3[5]), .gout(led3[6]));
 
@@ -113,13 +144,40 @@ module maindebbug(t, conf, r, porta,
        .eout(led4[4]), .fout(led4[5]), .gout(led4[6]));
 
 
+
+
+    /*** Configuração das máquinas ***/
+
     /** Luz interna **/
-    initial luz <= porta;
-    always @ (posedge porta) luz <= 1'b1;
-    always @ (negedge porta) luz <= 1'b0;
+
+    /* Estado inicial */
+    initial
+    begin
+
+        luz = porta;
+        luz1 = 1'b0;
+        luz2 = 1'b0;
+
+    end
+    /* Detecta se a porta abre */
+    always @ (posedge porta) begin luz1 = 1'b1; #1 luz1 = 1'b0; end
+
+    always @ (negedge porta) begin luz2 = 1'b1; #1 luz2 = 1'b0; end
+
+    /* Atualiza o valor da luz */
+    always @ (posedge luz1 or posedge luz2)
+    begin
+    
+        if(luz1) luz = 1'b1;
+        else if(luz2) luz = 1'b0;
+
+    end
+
 
 
     /** Componentes internos **/
+    
+    /* Valor inicial */
     initial 
     begin
 
@@ -129,30 +187,101 @@ module maindebbug(t, conf, r, porta,
 
     end
 
+    /* Atualiza o valor dos componentes */
+
+
+
+    /** Clock temporizador  **/
+
+    /* Valor inicial */
+    initial
+        clk <= 1'b0;
+
+    /* Funcionamento do clock */
+    always #250 clk = ~clk; /* Configurado para alternar a cada 0,25s */
+
+
+
+    /** Estados **/
+
+    /* Valor inicial */
+    initial
+        estado <= 4'b0000;
+
+
+
+    /** Visor **/
+    
+    /* Valor inicial */
+    initial
+        begin
+        
+            h4 <= 4'b0000;
+            h3 <= 4'b0000;
+            h2 <= 4'b0000;
+            h1 <= 4'b0000;
+
+            en <= 4'b1111;
+
+            h4a1[4] <= 1'b0;
+            h3a1[4] <= 1'b0;
+            h2a1[4] <= 1'b0;
+            h1a1[4] <= 1'b0;
+
+        end
+
+    /* Atualiza o valor do visor */
+    always @ (posedge h4a1[4] or posedge h3a1[4] or posedge h2a1[4] or posedge h1a1[4])
+        begin
+        
+            if(h4a1[4])
+                h4 = h4a1 [3:0];
+
+            if(h3a1[4])
+                h3 = h3a1 [3:0];
+
+            if(h2a1[4])
+                h2 = h2a1 [3:0];
+
+            if(h1a1[4])
+                h1 = h1a1 [3:0];
+
+        end
+
+
     /** Relógio padrão **/
 
     initial
         begin
 
-            p4 <= 4'b0010;
-            p3 <= 4'b0011;
-            p2 <= 4'b0101;
-            p1 <= 4'b1001;
+            p4 <= 4'b0000;
+            p3 <= 4'b0000;
+            p2 <= 4'b0000;
+            p1 <= 4'b0000;
 
-            estado <= 4'b0000;
+            p4a1[4] <= 1'b0;
+            p3a1[4] <= 1'b0;
+            p2a1[4] <= 1'b0;
+            p1a1[4] <= 1'b0;
 
-            clk1 <= 1'b0;
-            clk2 <= 1'b0;
-            clk3 <= 1'b0;
+        end
 
-            #1
 
-            h4 <= p4;
-            h3 <= p3;
-            h2 <= p2;
-            h1 <= p1;
+    /* Atualiza o valor do visor */
+    always @ (posedge p4a1[4] or posedge p3a1[4] or posedge p2a1[4] or posedge p1a1[4])
+        begin
+        
+            if(p4a1[4])
+                p4 = p4a1 [3:0];
 
-            en <= 4'b1111;
+            if(p3a1[4])
+                p3 = p3a1 [3:0];
+
+            if(p2a1[4])
+                p2 = p2a1 [3:0];
+
+            if(p1a1[4])
+                p1 = p1a1 [3:0];
 
 
         end
@@ -160,147 +289,176 @@ module maindebbug(t, conf, r, porta,
 
 
     /* Contador síncrono relógio padrão */
-    always @ (negedge clk1)
+    always
 
-        begin
+        begin #59999
+
+            p1a1 [3:0] = p1;
+            p2a1 [3:0] = p2;
+            p3a1 [3:0] = p3;
+            p4a1 [3:0] = p4;
+
             
+            
+            /* Limita o primeiro dígito a 9 */
             if(p1 == 4'b1001)
                 begin
     
+                    /* Limita o segundo dígito a 6 */
                     if(p2 == 4'b0101)
                         begin
                             
-                            
+                            /* Limita o terceiro dígito a 9 mas se o quarto dígito
+                                for 2 o terceiro dígito é limitado a 3 */
                             if(p3 == 4'b1001 | (p4 == 4'b0010 & p3 == 4'b0011))
                                 begin
                                     
+                                    /* Limita o quarto dígito a 2 */
                                     if(p4 == 4'b0010)
-                                        p4 <= 4'b0000;
+                                        p4a1 [3:0] = 4'b0000;
                                     else
-                                        p4 <= p4 + 4'b0001;
+                                        p4a1 [3:0] = p4 + 4'b0001;
 
 
-                                p3 <= 4'b0000;
+                                p3a1 [3:0] = 4'b0000;
 
                                 end
                             else
-                                p3 <= p3 + 4'b0001;
+                                p3a1 [3:0] = p3 + 4'b0001;
 
 
-                            p2 <= 4'b0000;             
+                            p2a1 [3:0] = 4'b0000;             
 
                         end
                     else
-                        p2 <= p2 + 4'b0001;
+                        p2a1 [3:0] = p2 + 4'b0001;
 
-                    p1 <= 4'b0000;
+                    p1a1 [3:0] = 4'b0000;
 
                 end
             else
-                p1 <= p1 + 4'b0001;
+                p1a1 [3:0] = p1 + 4'b0001;
 
+            /* Altera o relógio e o visor */
+            p1a1[4] = 1'b1;
+            p2a1[4] = 1'b1;
+            p3a1[4] = 1'b1;
+            p4a1[4] = 1'b1;
+        
+            if(estado == 4'b0000)
+                begin
+
+                    h1a1 = p1a1;
+                    h2a1 = p2a1;
+                    h3a1 = p3a1;
+                    h4a1 = p4a1;
+
+                end
+
+            #1
+            p1a1[4] = 1'b0;
+            p2a1[4] = 1'b0;
+            p3a1[4] = 1'b0;
+            p4a1[4] = 1'b0;
 
             if(estado == 4'b0000)
                 begin
 
-                    #1
-                    
-                    h1 <= p1;
-                    h2 <= p2;
-                    h3 <= p3;
-                    h4 <= p4;
+                    h1a1[4] = 1'b0;
+                    h2a1[4] = 1'b0;
+                    h3a1[4] = 1'b0;
+                    h4a1[4] = 1'b0;
 
                 end
 
         end
+
 
 
     /** Relógio regressivo **/
-    always @ (negedge clk2)
-    begin
-        
+    always
 
-        if(estado == 4'b0101)
-        begin
-            /* Contador regressivo síncrono */
-            if((g1 != 4'b0000) | (g2 != 4'b0000) | (g3 != 4'b0000) | (g4 != 4'b0000))
+        begin #1000
+            
+            if(estado == 4'b0101)
             begin
-                
-                if(g1 != 4'b0000)
-                begin
-                    g1 <= g1 - 4'b0001;
-                    #1
-                    h1 <= g1;
-                end
-
-                else
+                /* Contador regressivo síncrono */
+                if((g1 != 4'b0000) | (g2 != 4'b0000) | (g3 != 4'b0000) | (g4 != 4'b0000))
                 begin
                     
-                    if(g2 != 4'b0000)
+                    if(g1 != 4'b0000)
                     begin
-                        g2 <= g2 - 4'b0001;
-                        #1
-                        h2 <= g2;
+                        g1 = g1 - 4'b0001;
+                        h1 = g1;
                     end
 
                     else
+                    begin
+                        
+                        if(g2 != 4'b0000)
                         begin
-                            
-                            if(g3 != 4'b0000)
-                            begin
-                                g3 <= g3 - 4'b0001;
-                                #1
-                                h3 <= g3;   
-                            end
-
-                            else
-                            begin
-                                if(g4 != 4'b0000)
-                                begin
-                                    g4 <= g4 - 4'b0001;
-                                    #1
-                                    h4 <= g4;
-                                end
-                                else
-                                begin
-                                    g4 <= 4'b1001;
-                                    #1
-                                    h4 <= g4;
-                                end
-
-
-                                g3 <= 4'b1001;
-                                #1
-                                h3 <= g3;
-                            end
-
-                            g2 <= 4'b1001;
-                            #1
-                            h2 <= g2;
-
+                            g2 = g2 - 4'b0001;
+                            h2 = g2;
                         end
 
+                        else
+                            begin
+                                
+                                if(g3 != 4'b0000)
+                                begin
+                                    g3 <= g3 - 4'b0001;
+                                    #1
+                                    h3 <= g3;   
+                                end
 
-                    g1 <= 4'b1001;
-                    #1
-                    h1 <= g1;
+                                else
+                                begin
+                                    if(g4 != 4'b0000)
+                                    begin
+                                        g4 <= g4 - 4'b0001;
+                                        #1
+                                        h4 <= g4;
+                                    end
+                                    else
+                                    begin
+                                        g4 <= 4'b1001;
+                                        #1
+                                        h4 <= g4;
+                                    end
+
+
+                                    g3 <= 4'b1001;
+                                    #1
+                                    h3 <= g3;
+                                end
+
+                                g2 <= 4'b1001;
+                                #1
+                                h2 <= g2;
+
+                            end
+
+
+                        g1 <= 4'b1001;
+                        #1
+                        h1 <= g1;
+
+                    end
 
                 end
 
-            end
+                /* Comida finalizada */
+                else
+                    estado <= 4'b0110;
 
-            /* Comida finalizada */
-            else
-                estado <= 4'b0110;
+
+            end
 
 
         end
 
-
-    end
-
     /** Comida pronta **/
-    always @ (negedge clk3) 
+    always @ (negedge clk) 
         begin
 
             if(estado == 4'b0110)
@@ -310,28 +468,31 @@ module maindebbug(t, conf, r, porta,
             end
 
         end
-    always @ (estado == 4'b0110)
+    always @ (*)
+    begin
+    if(estado == 4'b0110)
     begin
 
-        motor <= 1'b0;
-        aquec <= 1'b0;
+        motor = 1'b0;
+        aquec = 1'b0;
         
 
 
         #5000
 
-        en <= 4'b1111;
-        som <= 1'b0;
-        luz <= 1'b0;
+        en = 4'b1111;
+        som = 1'b0;
+        // luz = 1'b0;
 
-        estado <= 4'b0000;
+        estado = 4'b0000;
 
-        h1 <= p1;
-        h2 <= p2;
-        h3 <= p3;
-        h4 <= p4;
+        h1 = p1;
+        h2 = p2;
+        h3 = p3;
+        h4 = p4;
 
 
+    end
     end
 
     /** Teclado **/
@@ -341,7 +502,12 @@ module maindebbug(t, conf, r, porta,
     begin
 
         if((estado >= 4'b0001) & (estado <= 4'b0100))
-           estado <= 4'b0101;
+        begin
+           estado = 4'b0101;
+           motor = 1'b1;
+           aquec = 1'b1;
+        //    luz = 1'b1;
+        end
 
     end
 
@@ -359,32 +525,32 @@ module maindebbug(t, conf, r, porta,
                     if(g2 == 4'b0000)
                     begin
                         estado <= 4'b0001;
-                        luz <= 1'b0;
-                        motor <= 1'b0;
-                        aquec <= 1'b0;
+                        //luz = 1'b0;
+                        motor = 1'b0;
+                        aquec = 1'b0;
                     end
                     else
                     begin
-                        estado <= 4'b0010;
-                        luz <= 1'b0;
-                        motor <= 1'b0;
-                        aquec <= 1'b0;
+                        estado = 4'b0010;
+                        //luz = 1'b0;
+                        motor = 1'b0;
+                        aquec = 1'b0;
                     end
                 end
                 else
                 begin
-                    estado <= 4'b0011;
-                    luz <= 1'b0;
-                    motor <= 1'b0;
-                    aquec <= 1'b0;
+                    estado = 4'b0011;
+                    //luz = 1'b0;
+                    motor = 1'b0;
+                    aquec = 1'b0;
                 end
             end
             else
             begin
-                estado <= 4'b0100;
-                luz <= 1'b0;
-                motor <= 1'b0;
-                aquec <= 1'b0;
+                estado = 4'b0100;
+                //luz = 1'b0;
+                motor = 1'b0;
+                aquec = 1'b0;
 
             end
                 
@@ -394,18 +560,18 @@ module maindebbug(t, conf, r, porta,
         else if((estado != 4'b0000) & (estado != 4'b0110))
         begin
             
-            estado <= 4'b0000;
-            h1 <= p1;
-            h2 <= p2;
-            h3 <= p3;
-            h4 <= p4;
+            estado = 4'b0000;
+            h1 = p1;
+            h2 = p2;
+            h3 = p3;
+            h4 = p4;
             
         end
 
             
-        som <= 1'b1;
+        som = 1'b1;
         #500
-        som <= 1'b0;
+        som = 1'b0;
         
     end
 
@@ -421,45 +587,41 @@ module maindebbug(t, conf, r, porta,
             4'b0000:
                 begin
                     
-                    g1 <= 4'd0;
+                    g1 = 4'd0;
 
-                    g2 <= 4'b0000;
-                    g3 <= 4'b0000;
-                    g4 <= 4'b0000;
+                    g2 = 4'b0000;
+                    g3 = 4'b0000;
+                    g4 = 4'b0000;
 
-                    #1
+                    h1 = g1;
+                    h2 = g2;
+                    h3 = g3;
+                    h4 = g4;
 
-                    h1 <= g1;
-                    h2 <= g2;
-                    h3 <= g3;
-                    h4 <= g4;
-
-                    estado <= 4'b0001;
+                    estado = 4'b0001;
 
                     /* Som do botão */    
-                    som <= 1'b1;
+                    som = 1'b1;
                     #500
-                    som <= 1'b0;
+                    som = 1'b0;
 
                 end
         
             4'b0001:
                 begin
                     
-                    g2 <= 4'd0;
+                    g2 = 4'd0;
 
-                    #1
+                    h2 = g2;
 
-                    h2 <= g2;
+                    estado = 4'b0010;
 
-                    estado <= 4'b0010;
-
-                    en[1] <= 1'b1;
+                    en[1] = 1'b1;
 
                     /* Som do botão */    
-                    som <= 1'b1;
+                    som = 1'b1;
                     #500
-                    som <= 1'b0;
+                    som = 1'b0;
 
                 end
 
@@ -3192,19 +3354,19 @@ module maindebbug(t, conf, r, porta,
 
 
     /* LEDs piscando para indicar qual é o dígito sendo alterado */
-    always @ (estado == 4'b0001) en[1] <= clk3;
-    always @ (estado == 4'b0010) en[2] <= clk3;
-    always @ (estado == 4'b0011) en[3] <= clk3;
+    always @ (*) if(estado == 4'b0001) en[1] <= clk;
+    always @ (*) if(estado == 4'b0010) en[2] <= clk;
+    always @ (*) if(estado == 4'b0011) en[3] <= clk;
 
-    always @ (estado == 4'b0111) en[0] <= clk3;
-    always @ (estado == 4'b1000) en[1] <= clk3;
-    always @ (estado == 4'b1001) en[2] <= clk3;
-    always @ (estado == 4'b1010) en[3] <= clk3;
+    always @ (*) if(estado == 4'b0111) en[0] <= clk;
+    always @ (*) if(estado == 4'b1000) en[1] <= clk;
+    always @ (*) if(estado == 4'b1001) en[2] <= clk;
+    always @ (*) if(estado == 4'b1010) en[3] <= clk;
 
-    always @ (estado == 4'b1011) en[0] <= clk3;
-    always @ (estado == 4'b1100) en[1] <= clk3;
-    always @ (estado == 4'b1101) en[2] <= clk3;
-    always @ (estado == 4'b1110) en[3] <= clk3;
+    always @ (*) if(estado == 4'b1011) en[0] <= clk;
+    always @ (*) if(estado == 4'b1100) en[1] <= clk;
+    always @ (*) if(estado == 4'b1101) en[2] <= clk;
+    always @ (*) if(estado == 4'b1110) en[3] <= clk;
 
 
     /** Receita **/
@@ -3412,13 +3574,12 @@ module maindebbug(t, conf, r, porta,
     begin
 
         if(estado == 4'b0000)            
-            estado <= 0111;
+            estado <= 4'b0111;
 
         som <= 1'b1;
         #500
         som <= 1'b0;
 
     end
-
 
 endmodule

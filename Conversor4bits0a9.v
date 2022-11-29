@@ -18,7 +18,9 @@ module Conversor4bits0a9(ain, bin, cin, din, en,
     assign  aout = (ain | cin | (bin ~^ din)) & en,
             bout = ((~bin) | (cin ~^ din)) & en,
             cout = ((~cin) | din | bin) & en,
-            dout = (((~bin) & (~din)) | (cin & (~din))) & en,
+            dout = (ain | ((~bin) & (~din)) | ((~bin) & cin) |
+             (bin & (~cin) & din) | (cin & (~din)) ) & en, 
+            eout = (((~bin) & (~din)) | (cin & (~din))) & en,
             fout = (((~cin) & (~din)) | (bin & (~din)) | (bin & (~cin)) | ain) & en,
             gout = (ain | (bin ^ cin) | (cin & (~din))) & en;   
 
