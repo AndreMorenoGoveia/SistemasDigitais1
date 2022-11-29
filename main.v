@@ -1,7 +1,7 @@
 `timescale 1ms/100ns
 
 module main(t, conf, r, porta,
-                    led1, led2, led3, led4, luz, motor, aquec, som);
+            led1, led2, led3, led4, luz, motor, aquec, som);
 
 
     /*** Entradas e saídas ***/
@@ -42,14 +42,28 @@ module main(t, conf, r, porta,
        1101 - Configuração da receita 3
        1110 - Configuração de receita 4
     **/
-    reg [4:0] estado;
+    reg [3:0] estado;
+
+    /* Auxiliares */
+    reg est1;
+    reg est2;
+    reg [4:0] est3;
 
 
 
-    /** Luz interna **/
+    /** Componentes internos **/
     /* Auxiliares */
     reg luz1;
     reg luz2;
+    reg luz3;
+    reg s1;
+    reg s2;
+    reg ma1;
+
+
+
+    /** Teclado **/
+    reg [4:0] num;
 
 
 
@@ -65,6 +79,23 @@ module main(t, conf, r, porta,
     reg [4:0] h3a1;
     reg [4:0] h2a1;
     reg [4:0] h1a1;
+
+    reg [4:0] h4a2;
+    reg [4:0] h3a2;
+    reg [4:0] h2a2;
+    reg [4:0] h1a2;
+
+    reg [4:0] h4a3;
+    reg [4:0] h3a3;
+    reg [4:0] h2a3;
+    reg [4:0] h1a3;
+
+    reg [4:0] h4a4;
+    reg [4:0] h3a4;
+    reg [4:0] h2a4;
+    reg [4:0] h1a4;
+
+    reg en1;
 
 
 
@@ -107,12 +138,15 @@ module main(t, conf, r, porta,
 
 
     /** Relógio regressivo **/
+    reg [3:0] re4;
+    reg [3:0] re3;
+    reg [3:0] re2;
+    reg [3:0] re1;
+    /* Auxiliares */
     reg [3:0] g4;
     reg [3:0] g3;
     reg [3:0] g2;
     reg [3:0] g1;
-    /* Auxiliares */
-
 
 
     /** Clock temporizador **/
@@ -146,6 +180,7 @@ module main(t, conf, r, porta,
 
 
 
+
     /*** Configuração das máquinas ***/
 
     /** Luz interna **/
@@ -154,40 +189,58 @@ module main(t, conf, r, porta,
     initial
     begin
 
-        luz = porta;
-        luz1 = 1'b0;
-        luz2 = 1'b0;
+        motor <= 1'b0;
+        aquec <= 1'b0;
+        som <= 1'b0;
+        s1 <= 1'b0;
+        ma1 <= 1'b0;
+
+        luz <= porta;
+        luz1 <= 1'b0;
+        luz2 <= 1'b0;
+        luz3 <= 1'b0
 
     end
+
     /* Detecta se a porta abre */
     always @ (posedge porta) begin luz1 = 1'b1; #1 luz1 = 1'b0; end
 
     always @ (negedge porta) begin luz2 = 1'b1; #1 luz2 = 1'b0; end
 
     /* Atualiza o valor da luz */
-    always @ (posedge luz1 or posedge luz2)
+    always @ (posedge luz1 or posedge luz2 or posedge luz3)
     begin
     
         if(luz1) luz = 1'b1;
-        else if(luz2) luz = 1'b0;
+        else if(luz2 | luz3) luz = 1'b0;
 
     end
 
+    /* Atualiza o valor do som */
+    always @ (posedge s1 or posedge s2)
+        begin
+                
+            som = 1'b1;
 
+            #100
 
-    /** Componentes internos **/
-    
-    /* Valor inicial */
-    initial 
-    begin
+            som = 1'b0;
 
-        motor <= 1'b0;
-        aquec <= 1'b0;
-        som <= 1'b0;
+        end
 
-    end
+    /* Atualiza o valor do motor e do aquecimento */
+    always @ (posedge ma1)
+        begin
+            
+            if(ma1)
+                begin
 
-    /* Atualiza o valor dos componentes */
+                    motor = 1'b0;
+                    aquec = 1'b0;
+                    
+                end
+
+        end
 
 
 
@@ -206,8 +259,31 @@ module main(t, conf, r, porta,
 
     /* Valor inicial */
     initial
-        estado <= 4'b0000;
+        begin
 
+            estado <= 4'b0000;
+            est1 <= 1'b0;
+            est2 <= 1'b0;
+            est3[4] <= 1'b0;
+
+        end
+
+
+    
+    /* Atualiza o valor do estado */
+    always @ (posedge est1 or posedge est2 or posedge est3[4])
+        begin
+
+            if(est1)
+                estado = 4'b0110;
+    
+            else if(est2)
+                estado = 4'b0000;
+
+            else if(est3[4])
+                estado = est3 [3:0];
+ 
+        end
 
 
     /** Visor **/
@@ -228,10 +304,25 @@ module main(t, conf, r, porta,
             h2a1[4] <= 1'b0;
             h1a1[4] <= 1'b0;
 
+            h4a2[4] <= 1'b0;
+            h3a2[4] <= 1'b0;
+            h2a2[4] <= 1'b0;
+            h1a2[4] <= 1'b0;
+
+            h4a3[4] <= 1'b0;
+            h3a3[4] <= 1'b0;
+            h2a3[4] <= 1'b0;
+            h1a3[4] <= 1'b0;
+
+            en1 <= 1'b0;
+
         end
 
     /* Atualiza o valor do visor */
-    always @ (posedge h4a1[4] or posedge h3a1[4] or posedge h2a1[4] or posedge h1a1[4])
+    always @ (posedge h4a1[4] or posedge h3a1[4] or posedge h2a1[4] or posedge h1a1[4] or
+              posedge h4a2[4] or posedge h3a2[4] or posedge h2a2[4] or posedge h1a2[4] or
+              posedge h4a3[4] or posedge h3a3[4] or posedge h2a3[4] or posedge h1a3[4] or
+              posedge h4a4[4] or posedge h3a4[4] or posedge h2a4[4] or posedge h1a4[4]) 
         begin
         
             if(h4a1[4])
@@ -243,8 +334,61 @@ module main(t, conf, r, porta,
             if(h2a1[4])
                 h2 = h2a1 [3:0];
 
-            if(h1a1[4])
-                h1 = h1a1 [3:0];
+            if(h1a2[4])
+                h1 = h1a2 [3:0];
+
+            if(h4a2[4])
+                h4 = h4a2 [3:0];
+
+            if(h3a2[4])
+                h3 = h3a2 [3:0];
+
+            if(h2a2[4])
+                h2 = h2a2 [3:0];
+
+            if(h1a2[4])
+                h1 = h1a2 [3:0];
+
+            if(h4a3[4])
+                h4 = h4a3 [3:0];
+
+            if(h3a3[4])
+                h3 = h3a3 [3:0];
+
+            if(h2a3[4])
+                h2 = h2a3 [3:0];
+
+            if(h1a3[4])
+                h1 = h1a3 [3:0];
+
+            if(h4a4[4])
+                h4 = h4a4 [3:0];
+
+            if(h3a4[4])
+                h3 = h3a4 [3:0];
+
+            if(h2a4[4])
+                h2 = h2a4 [3:0];
+
+            if(h1a4[4])
+                h1 = h1a4 [3:0];
+
+        end
+
+    /* Atualiza o valor do enable do visor */
+    always @ (posedge en1)
+        begin
+            
+            if(en1)
+                begin
+                    
+                    en = 4'b0000;
+
+                    #100
+
+                    en = 4'b1111;
+
+                end
 
         end
 
@@ -267,7 +411,7 @@ module main(t, conf, r, porta,
         end
 
 
-    /* Atualiza o valor do visor */
+    /* Atualiza o valor do relógio */
     always @ (posedge p4a1[4] or posedge p3a1[4] or posedge p2a1[4] or posedge p1a1[4])
         begin
         
@@ -356,6 +500,7 @@ module main(t, conf, r, porta,
                 end
 
             #1
+            
             p1a1[4] = 1'b0;
             p2a1[4] = 1'b0;
             p3a1[4] = 1'b0;
@@ -378,78 +523,91 @@ module main(t, conf, r, porta,
     /** Relógio regressivo **/
     always
 
-        begin #1000
+        begin #999
+
             
             if(estado == 4'b0101)
             begin
+
+                g1 = re1;
+                g2 = re2;
+                g3 = re3;
+                g4 = re4;
+
                 /* Contador regressivo síncrono */
                 if((g1 != 4'b0000) | (g2 != 4'b0000) | (g3 != 4'b0000) | (g4 != 4'b0000))
                 begin
                     
+
+                    /* Limite é 0 e após o limite todos vão à 9 */
                     if(g1 != 4'b0000)
-                    begin
                         g1 = g1 - 4'b0001;
-                        h1 = g1;
-                    end
 
                     else
-                    begin
-                        
-                        if(g2 != 4'b0000)
                         begin
-                            g2 = g2 - 4'b0001;
-                            h2 = g2;
+                            
+                            if(g2 != 4'b0000)
+                                g2 = g2 - 4'b0001;
+
+                            else
+                                begin
+                                    
+                                    if(g3 != 4'b0000)
+                                        g3 = g3 - 4'b0001;
+
+
+                                    else
+                                        begin
+                            
+                                            if(g4 != 4'b0000)
+                                                g4 = g4 - 4'b0001;
+
+                                            else
+                                                g4 = 4'b1001;
+
+                                            g3 = 4'b1001;
+
+                                        end
+
+                                    g2 = 4'b1001;
+
+                                end
+
+                            g1 = 4'b1001;
+
                         end
 
-                        else
-                            begin
-                                
-                                if(g3 != 4'b0000)
-                                begin
-                                    g3 <= g3 - 4'b0001;
-                                    #1
-                                    h3 <= g3;   
-                                end
+                    /* Atualizando o visor */
+                    h1a2 [3:0] = g1;
+                    h1a2 [3:0] = g2;
+                    h1a2 [3:0] = g3;
+                    h1a2 [3:0] = g4;
 
-                                else
-                                begin
-                                    if(g4 != 4'b0000)
-                                    begin
-                                        g4 <= g4 - 4'b0001;
-                                        #1
-                                        h4 <= g4;
-                                    end
-                                    else
-                                    begin
-                                        g4 <= 4'b1001;
-                                        #1
-                                        h4 <= g4;
-                                    end
+                    h1a2 [4] = g1;
+                    h1a2 [4] = g2;
+                    h1a2 [4] = g3;
+                    h1a2 [4] = g4;
 
+                    #1
 
-                                    g3 <= 4'b1001;
-                                    #1
-                                    h3 <= g3;
-                                end
-
-                                g2 <= 4'b1001;
-                                #1
-                                h2 <= g2;
-
-                            end
-
-
-                        g1 <= 4'b1001;
-                        #1
-                        h1 <= g1;
-
-                    end
+                    h1a2 [4] = 1'b0;
+                    h1a2 [4] = 1'b0;
+                    h1a2 [4] = 1'b0;
+                    h1a2 [4] = 1'b0;
 
                 end
 
                 /* Comida finalizada */
                 else
-                    estado <= 4'b0110;
+                    begin
+
+                        est1 = 1'b1;
+
+                        #1
+
+                        est1 = 1'b0; 
+
+                    end
 
 
             end
@@ -458,140 +616,113 @@ module main(t, conf, r, porta,
         end
 
     /** Comida pronta **/
+
+    /* Faz o alarme e o visor pisca */
     always @ (negedge clk) 
         begin
 
             if(estado == 4'b0110)
             begin
-                en <= ~en;
-                som <= ~som;
+
+                en1 = 1'b1;
+                s1 = 1'b1;
+
+                #1
+
+                en1 = 1'b0;
+                s1 = 1'b0;
+
             end
 
         end
+
+    /* Desliga o motor e retorna ao relógio padrão */
     always @ (*)
-    begin
-    if(estado == 4'b0110)
-    begin
+        begin
 
-        motor = 1'b0;
-        aquec = 1'b0;
-        
+            if(estado == 4'b0110)
+                begin
 
+                    ma1 = 1'b1;
+                    #1
+                    ma1 = 1'b0;
+                    
+                    #5000
 
-        #5000
+                    luz3 = 1'b1;
 
-        en = 4'b1111;
-        som = 1'b0;
-        // luz = 1'b0;
-
-        estado = 4'b0000;
-
-        h1 = p1;
-        h2 = p2;
-        h3 = p3;
-        h4 = p4;
+                    est2 = 1'b1;
 
 
-    end
-    end
+                    h1a3 [3:0] = p1;
+                    h2a3 [3:0] = p2;
+                    h3a3 [3:0] = p3;
+                    h4a3 [3:0] = p4;
+
+                    h1a3[4] = 1'b1;
+                    h2a3[4] = 1'b1;
+                    h3a3[4] = 1'b1;
+                    h4a3[4] = 1'b1;
+
+                    #1
+
+                    h1a3[4] = 1'b0;
+                    h2a3[4] = 1'b0;
+                    h3a3[4] = 1'b0;
+                    h4a3[4] = 1'b0;
+
+                    luz3 = 1'b0;
+
+                    est2 = 1'b0;
+
+
+                end
+
+        end
 
     /** Teclado **/
 
-    /* O usuário clica no botão de início */
-    always @(posedge t[10]) 
-    begin
 
-        if((estado >= 4'b0001) & (estado <= 4'b0100))
+    /* O usuário clica em um botão de número */
+    always @ (posedge t[0] or posedge t[1] or posedge t[2] or
+              posedge t[3] or posedge t[4] or posedge t[5] or
+              posedge t[6] or posedge t[7] or posedge t[8] or posedge t[9])
         begin
-           estado = 4'b0101;
-           motor = 1'b1;
-           aquec = 1'b1;
-        //    luz = 1'b1;
-        end
 
-    end
+            if(t[0]) num <= 4'd0;
 
-    /* O usuário clica no botão de cancela */
-    always @(posedge t[11]) 
-    begin
+            else if(t[1]) num <= 4'd1;
 
-        if(estado == 4'b0101)
-        begin
-            
-            if(g4 == 4'b0000)
-            begin
-                if(g3 == 4'b0000)
-                begin
-                    if(g2 == 4'b0000)
-                    begin
-                        estado <= 4'b0001;
-                        //luz = 1'b0;
-                        motor = 1'b0;
-                        aquec = 1'b0;
-                    end
-                    else
-                    begin
-                        estado = 4'b0010;
-                        //luz = 1'b0;
-                        motor = 1'b0;
-                        aquec = 1'b0;
-                    end
-                end
-                else
-                begin
-                    estado = 4'b0011;
-                    //luz = 1'b0;
-                    motor = 1'b0;
-                    aquec = 1'b0;
-                end
-            end
-            else
-            begin
-                estado = 4'b0100;
-                //luz = 1'b0;
-                motor = 1'b0;
-                aquec = 1'b0;
+            else if(t[2]) num <= 4'd2;
 
-            end
-                
+            else if(t[3]) num <= 4'd3;
 
-        end
+            else if(t[4]) num <= 4'd4;
 
-        else if((estado != 4'b0000) & (estado != 4'b0110))
-        begin
-            
-            estado = 4'b0000;
-            h1 = p1;
-            h2 = p2;
-            h3 = p3;
-            h4 = p4;
-            
-        end
+            else if(t[5]) num <= 4'd5;
 
-            
-        som = 1'b1;
-        #500
-        som = 1'b0;
-        
-    end
+            else if(t[6]) num <= 4'd6;
+
+            else if(t[7]) num <= 4'd7;
+
+            else if(t[8]) num <= 4'd8;
+
+            else if(t[9]) num <= 4'd9;
 
 
+            /* Realiza as ações de acordo com o estado */
+            case(estado)
 
-    /* O usuário clica em algum botão de número */
-    always @ (posedge t[0])
-    begin
-
-        case(estado)
-
-        /* Seleção de contagem (vai andanddo de acordo com o apertar de botões) */
+        /* Seleção de contagem (o dígito a ser alterado
+        vai andanddo de acordo com o apertar de botões) */
             4'b0000:
                 begin
                     
-                    g1 = 4'd0;
+                    re1 = num;
 
-                    g2 = 4'b0000;
-                    g3 = 4'b0000;
-                    g4 = 4'b0000;
+                    re2 = 4'b0000;
+                    re3 = 4'b0000;
+                    re4 = 4'b0000;
 
                     h1 = g1;
                     h2 = g2;
@@ -873,2484 +1004,89 @@ module main(t, conf, r, porta,
             end        
 
     endcase
-        
-    end
 
-    always @ (posedge t[1])
+
+
+        end
+
+    /* O usuário clica no botão de início */
+    always @(posedge t[10]) 
     begin
 
-        case(estado)
+        if((estado >= 4'b0001) & (estado <= 4'b0100))
+        begin
+           estado = 4'b0101;
+           motor = 1'b1;
+           aquec = 1'b1;
+        //    luz = 1'b1;
+        end
 
-        /* Seleção de contagem (vai andanddo de acordo com o apertar de botões) */
-            4'b0000:
-                begin
-                    
-                    g1 <= 4'd1;
-
-                    g2 <= 4'b0000;
-                    g3 <= 4'b0000;
-                    g4 <= 4'b0000;
-
-                    #1
-
-                    h1 <= g1;
-                    h2 <= g2;
-                    h3 <= g3;
-                    h4 <= g4;
-
-                    estado <= 4'b0001;
-
-                    /* Som do botão */    
-                    som <= 1'b1;
-                    #500
-                    som <= 1'b0;
-
-                end
-        
-            4'b0001:
-                begin
-                    
-                    g2 <= 4'd1;
-
-                    #1
-
-                    h2 <= g2;
-
-                    estado <= 4'b0010;
-
-                    en[1] <= 1'b1;
-
-                    /* Som do botão */    
-                    som <= 1'b1;
-                    #500
-                    som <= 1'b0;
-
-                end
-
-            4'b0010:
-                begin
-                    
-                    g3 <= 4'd1;
-
-                    #1
-
-                    h3 <= g3;
-
-                    estado <= 4'b0011;
-
-                    en[2] <= 1'b1;
-
-                    /* Som do botão */    
-                    som <= 1'b1;
-                    #500
-                    som <= 1'b0;
-
-                end
-        
-            4'b0011:
-                begin
-                    
-                    g4 <= 4'd1;
-
-                    #1
-
-                    h4 <= g4;
-
-                    estado <= 4'b0100;
-
-                    en[3] <= 1'b1;
-
-                    som <= 1'b1;
-                    #500
-                    som <= 1'b0;
-
-                end
-
-        /* Configuração de horário */
-        4'b0111:
-            begin
-            
-                rm1 <= 4'd1;
-
-                #1
-
-                h1 <= rm1;
-
-                estado <= 4'b1000;
-
-                en[0] <= 1'b1;
-
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-
-            end
-        
-        4'b1000:
-            begin
-                rm2 <= 4'd1;
-
-                #1
-
-                h2 <= rm2;
-
-                estado <= 4'b1001;
-
-                en[1] <= 1'b1;
-
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-            end
-
-        4'b1001:
-            begin
-                rm3 <= 4'd1;
-
-                #1
-
-                h3 <= rm3;
-
-                estado <= 4'b1010;
-
-                en[2] <= 1'b1;
-
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-            end
-        
-        4'b1010:
-            begin
-
-                p1 <= rm1;
-                p2 <= rm2;
-                p3 <= rm3;
-                p4 <= 4'd1;
-
-                #1
-
-                h1 <= p1;
-                h2 <= p2;
-                h3 <= p3;
-                h4 <= p4;
-
-                estado <= 4'b0000;
-
-                en[3] <= 1'b1;
-
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-
-            end
-
-        /* Configuração de receita */
-        4'b1011:
-            begin
-                
-                rm1 <= 4'd1;
-
-                #1
-
-                h1 <= rm1;
-
-                estado <= 4'b1100;
-
-                en[0] <= 1'b1;
-
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-
-            end
-
-        4'b1100:
-            begin
-                
-                rm2 <= 4'd1;
-
-                #1
-
-                h2 <= rm2;
-
-                estado <= 4'b1101;
-
-                en[1] <= 1'b1;
-
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-
-            end
-
-        4'b1101:
-            begin
-                
-                rm3 <= 4'd1;
-
-                #1
-
-                h3 <= rm3;
-
-                estado <= 4'b1110;
-
-                en[2] <= 1'b1;
-
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-
-            end
-        
-        4'b1110:
-            begin
-                
-                case(rec)
-
-                    2'b00:
-                        begin
-                            
-                            r11 <= rm1;
-                            r12 <= rm2;
-                            r13 <= rm3;
-                            r14 <= 4'd1;
-
-                        end
-
-                    2'b01:
-                        begin
-                            
-                            r21 <= rm1;
-                            r22 <= rm2;
-                            r23 <= rm3;
-                            r24 <= 4'd1;
-
-                        end
-
-                    2'b10:
-                        begin
-                            
-                            r31 <= rm1;
-                            r32 <= rm2;
-                            r33 <= rm3;
-                            r34 <= 4'd1;
-
-                        end
-                    
-                    2'b11:
-                        begin
-                            
-                            r41 <= rm1;
-                            r42 <= rm2;
-                            r43 <= rm3;
-                            r44 <= 4'd1;
-
-                        end
-
-                endcase
-
-                estado <= 4'b0000;
-
-                en[3] <= 1'b1;
-
-                h1 <= p1;
-                h2 <= p2;
-                h3 <= p3;
-                h4 <= p4;
-
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-
-            end
-
-        default:
-            begin
-                    
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-
-            end        
-
-    endcase
-        
     end
 
-    always @ (posedge t[2])
+    /* O usuário clica no botão de cancela */
+    always @(posedge t[11]) 
     begin
 
-        case(estado)
-
-        /* Seleção de contagem (vai andanddo de acordo com o apertar de botões) */
-            4'b0000:
-                begin
-                    
-                    g1 <= 4'd2;
-
-                    g2 <= 4'b0000;
-                    g3 <= 4'b0000;
-                    g4 <= 4'b0000;
-
-                    #1
-
-                    h1 <= g1;
-                    h2 <= g2;
-                    h3 <= g3;
-                    h4 <= g4;
-
-                    estado <= 4'b0001;
-
-                    /* Som do botão */    
-                    som <= 1'b1;
-                    #500
-                    som <= 1'b0;
-
-                end
-        
-            4'b0001:
-                begin
-                    
-                    g2 <= 4'd2;
-
-                    #1
-
-                    h2 <= g2;
-
-                    estado <= 4'b0010;
-
-                    en[1] <= 1'b1;
-
-                    /* Som do botão */    
-                    som <= 1'b1;
-                    #500
-                    som <= 1'b0;
-
-                end
-
-            4'b0010:
-                begin
-                    
-                    g3 <= 4'd2;
-
-                    #1
-
-                    h3 <= g3;
-
-                    estado <= 4'b0011;
-
-                    en[2] <= 1'b1;
-
-                    /* Som do botão */    
-                    som <= 1'b1;
-                    #500
-                    som <= 1'b0;
-
-                end
-        
-            4'b0011:
-                begin
-                    
-                    g4 <= 4'd2;
-
-                    #1
-
-                    h4 <= g4;
-
-                    estado <= 4'b0100;
-
-                    en[3] <= 1'b1;
-
-                    som <= 1'b1;
-                    #500
-                    som <= 1'b0;
-
-                end
-
-        /* Configuração de horário */
-        4'b0111:
-            begin
+        if(estado == 4'b0101)
+        begin
             
-                rm1 <= 4'd2;
-
-                #1
-
-                h1 <= rm1;
-
-                estado <= 4'b1000;
-
-                en[0] <= 1'b1;
-
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-
-            end
-        
-        4'b1000:
+            if(g4 == 4'b0000)
             begin
-                rm2 <= 4'd2;
-
-                #1
-
-                h2 <= rm2;
-
-                estado <= 4'b1001;
-
-                en[1] <= 1'b1;
-
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-            end
-
-        4'b1001:
-            begin
-                rm3 <= 4'd2;
-
-                #1
-
-                h3 <= rm3;
-
-                estado <= 4'b1010;
-
-                en[2] <= 1'b1;
-
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-            end
-        
-        4'b1010:
-            begin
-
-                if(rm3 < 4'b0100)
+                if(g3 == 4'b0000)
                 begin
-                    
-                    p1 <= rm1;
-                    p2 <= rm2;
-                    p3 <= rm3;
-                    p4 <= 4'd2;
-
-                    #1
-
-                    h1 <= p1;
-                    h2 <= p2;
-                    h3 <= p3;
-                    h4 <= p4;
-
-                    estado <= 4'b0000;
-
-                    en[3] <= 1'b1;
-
+                    if(g2 == 4'b0000)
+                    begin
+                        estado <= 4'b0001;
+                        //luz = 1'b0;
+                        motor = 1'b0;
+                        aquec = 1'b0;
+                    end
+                    else
+                    begin
+                        estado = 4'b0010;
+                        //luz = 1'b0;
+                        motor = 1'b0;
+                        aquec = 1'b0;
+                    end
                 end
-
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
+                else
+                begin
+                    estado = 4'b0011;
+                    //luz = 1'b0;
+                    motor = 1'b0;
+                    aquec = 1'b0;
+                end
+            end
+            else
+            begin
+                estado = 4'b0100;
+                //luz = 1'b0;
+                motor = 1'b0;
+                aquec = 1'b0;
 
             end
-
-        /* Configuração de receita */
-        4'b1011:
-            begin
                 
-                rm1 <= 4'd2;
 
-                #1
+        end
 
-                h1 <= rm1;
+        else if((estado != 4'b0000) & (estado != 4'b0110))
+        begin
+            
+            estado = 4'b0000;
+            h1 = p1;
+            h2 = p2;
+            h3 = p3;
+            h4 = p4;
+            
+        end
 
-                estado <= 4'b1100;
-
-                en[0] <= 1'b1;
-
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-
-            end
-
-        4'b1100:
-            begin
-                
-                rm2 <= 4'd2;
-
-                #1
-
-                h2 <= rm2;
-
-                estado <= 4'b1101;
-
-                en[1] <= 1'b1;
-
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-
-            end
-
-        4'b1101:
-            begin
-                
-                rm3 <= 4'd2;
-
-                #1
-
-                h3 <= rm3;
-
-                estado <= 4'b1110;
-
-                en[2] <= 1'b1;
-
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-
-            end
-        
-        4'b1110:
-            begin
-                
-                case(rec)
-
-                    2'b00:
-                        begin
-                            
-                            r11 <= rm1;
-                            r12 <= rm2;
-                            r13 <= rm3;
-                            r14 <= 4'd2;
-
-                        end
-
-                    2'b01:
-                        begin
-                            
-                            r21 <= rm1;
-                            r22 <= rm2;
-                            r23 <= rm3;
-                            r24 <= 4'd2;
-
-                        end
-
-                    2'b10:
-                        begin
-                            
-                            r31 <= rm1;
-                            r32 <= rm2;
-                            r33 <= rm3;
-                            r34 <= 4'd2;
-
-                        end
-                    
-                    2'b11:
-                        begin
-                            
-                            r41 <= rm1;
-                            r42 <= rm2;
-                            r43 <= rm3;
-                            r44 <= 4'd2;
-
-                        end
-
-                endcase
-
-                estado <= 4'b0000;
-
-                en[3] <= 1'b1;
-
-                h1 <= p1;
-                h2 <= p2;
-                h3 <= p3;
-                h4 <= p4;
-
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-
-            end
-
-        default:
-            begin
-                    
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-
-            end        
-
-    endcase
+            
+        som = 1'b1;
+        #500
+        som = 1'b0;
         
     end
-    always @ (posedge t[3])
-    begin
 
-        case(estado)
-
-        /* Seleção de contagem (vai andanddo de acordo com o apertar de botões) */
-            4'b0000:
-                begin
-                    
-                    g1 <= 4'd3;
-
-                    g2 <= 4'b0000;
-                    g3 <= 4'b0000;
-                    g4 <= 4'b0000;
-
-                    #1
-
-                    h1 <= g1;
-                    h2 <= g2;
-                    h3 <= g3;
-                    h4 <= g4;
-
-                    estado <= 4'b0001;
-
-                    /* Som do botão */    
-                    som <= 1'b1;
-                    #500
-                    som <= 1'b0;
-
-                end
-        
-            4'b0001:
-                begin
-                    
-                    g2 <= 4'd3;
-
-                    #1
-
-                    h2 <= g2;
-
-                    estado <= 4'b0010;
-
-                    en[1] <= 1'b1;
-
-                    /* Som do botão */    
-                    som <= 1'b1;
-                    #500
-                    som <= 1'b0;
-
-                end
-
-            4'b0010:
-                begin
-                    
-                    g3 <= 4'd3;
-
-                    #1
-
-                    h3 <= g3;
-
-                    estado <= 4'b0011;
-
-                    en[2] <= 1'b1;
-
-                    /* Som do botão */    
-                    som <= 1'b1;
-                    #500
-                    som <= 1'b0;
-
-                end
-        
-            4'b0011:
-                begin
-                    
-                    g4 <= 4'd3;
-
-                    #1
-
-                    h4 <= g4;
-
-                    estado <= 4'b0100;
-                    
-                   en[3] <= 1'b1; 
-
-                    som <= 1'b1;
-                    #500
-                    som <= 1'b0;
-
-                end
-
-        /* Configuração de horário */
-        4'b0111:
-            begin
-            
-                rm1 <= 4'd3;
-
-                #1
-
-                h1 <= rm1;
-
-                estado <= 4'b1000;
-
-                en[0] <= 1'b1;
-
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-
-            end
-        
-        4'b1000:
-            begin
-                rm2 <= 4'd3;
-
-                #1
-
-                h2 <= rm2;
-
-                estado <= 4'b1001;
-
-                en[1] <= 1'b1;
-
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-            end
-
-        4'b1001:
-            begin
-                rm3 <= 4'd3;
-
-                #1
-
-                h3 <= rm3;
-
-                estado <= 4'b1010;
-
-                en[2] <= 1'b1;
-
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-            end
-
-        /* Configuração de receita */
-        4'b1011:
-            begin
-                
-                rm1 <= 4'd3;
-
-                #1
-
-                h1 <= rm1;
-
-                estado <= 4'b1100;
-
-                en[0] <= 1'b1;
-
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-
-            end
-
-        4'b1100:
-            begin
-                
-                rm2 <= 4'd3;
-
-                #1
-
-                h2 <= rm2;
-
-                estado <= 4'b1101;
-
-                en[1] <= 1'b1;
-
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-
-            end
-
-        4'b1101:
-            begin
-                
-                rm3 <= 4'd3;
-
-                #1
-
-                h3 <= rm3;
-
-                estado <= 4'b1110;
-
-                en[2] <= 1'b1;
-
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-
-            end
-        
-        4'b1110:
-            begin
-                
-                case(rec)
-
-                    2'b00:
-                        begin
-                            
-                            r11 <= rm1;
-                            r12 <= rm2;
-                            r13 <= rm3;
-                            r14 <= 4'd3;
-
-                        end
-
-                    2'b01:
-                        begin
-                            
-                            r21 <= rm1;
-                            r22 <= rm2;
-                            r23 <= rm3;
-                            r24 <= 4'd3;
-
-                        end
-
-                    2'b10:
-                        begin
-                            
-                            r31 <= rm1;
-                            r32 <= rm2;
-                            r33 <= rm3;
-                            r34 <= 4'd3;
-
-                        end
-                    
-                    2'b11:
-                        begin
-                            
-                            r41 <= rm1;
-                            r42 <= rm2;
-                            r43 <= rm3;
-                            r44 <= 4'd3;
-
-                        end
-
-                endcase
-
-                estado <= 4'b0000;
-
-                en[3] <= 1'b1;
-
-                h1 <= p1;
-                h2 <= p2;
-                h3 <= p3;
-                h4 <= p4;
-
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-
-            end
-
-        default:
-            begin
-                    
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-
-            end        
-
-    endcase
-        
-    end
-    always @ (posedge t[4])
-    begin
-
-        case(estado)
-
-        /* Seleção de contagem (vai andanddo de acordo com o apertar de botões) */
-            4'b0000:
-                begin
-                    
-                    g1 <= 4'd4;
-
-                    g2 <= 4'b0000;
-                    g3 <= 4'b0000;
-                    g4 <= 4'b0000;
-
-                    #1
-
-                    h1 <= g1;
-                    h2 <= g2;
-                    h3 <= g3;
-                    h4 <= g4;
-
-                    estado <= 4'b0001;
-
-                    /* Som do botão */    
-                    som <= 1'b1;
-                    #500
-                    som <= 1'b0;
-
-                end
-        
-            4'b0001:
-                begin
-                    
-                    g2 <= 4'd4;
-
-                    #1
-
-                    h2 <= g2;
-
-                    estado <= 4'b0010;
-
-                    en[1] <= 1'b1;
-
-                    /* Som do botão */    
-                    som <= 1'b1;
-                    #500
-                    som <= 1'b0;
-
-                end
-
-            4'b0010:
-                begin
-                    
-                    g3 <= 4'd4;
-
-                    #1
-
-                    h3 <= g3;
-
-                    estado <= 4'b0011;
-
-                    en[2] <= 1'b1;
-
-                    /* Som do botão */    
-                    som <= 1'b1;
-                    #500
-                    som <= 1'b0;
-
-                end
-        
-            4'b0011:
-                begin
-                    
-                    g4 <= 4'd4;
-
-                    #1
-
-                    h4 <= g4;
-
-                    estado <= 4'b0100;
-
-                    en[3] <= 1'b1;
-
-                    som <= 1'b1;
-                    #500
-                    som <= 1'b0;
-
-                end
-
-        /* Configuração de horário */
-        4'b0111:
-            begin
-            
-                rm1 <= 4'd4;
-
-                #1
-
-                h1 <= rm1;
-
-                estado <= 4'b1000;
-
-                en[0] <= 1'b1;
-
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-
-            end
-        
-        4'b1000:
-            begin
-                rm2 <= 4'd4;
-
-                #1
-
-                h2 <= rm2;
-
-                estado <= 4'b1001;
-
-                en[1] <= 1'b1;
-
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-            end
-
-        4'b1001:
-            begin
-
-                rm3 <= 4'd4;
-
-                #1
-
-                h3 <= rm3;
-
-                estado <= 4'b1010;
-
-                en[2] <= 1'b1;
-
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-            end
-
-        /* Configuração de receita */
-        4'b1011:
-            begin
-                
-                rm1 <= 4'd4;
-
-                #1
-
-                h1 <= rm1;
-
-                estado <= 4'b1100;
-
-                en[0] <= 1'b1;
-
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-
-            end
-
-        4'b1100:
-            begin
-                
-                rm2 <= 4'd4;
-
-                #1
-
-                h2 <= rm2;
-
-                estado <= 4'b1101;
-
-                en[1] <= 1'b1;
-
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-
-            end
-
-        4'b1101:
-            begin
-                
-                rm3 <= 4'd4;
-
-                #1
-
-                h3 <= rm3;
-
-                estado <= 4'b1110;
-
-                en[2] <= 1'b1;
-
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-
-            end
-        
-        4'b1110:
-            begin
-                
-                case(rec)
-
-                    2'b00:
-                        begin
-                            
-                            r11 <= rm1;
-                            r12 <= rm2;
-                            r13 <= rm3;
-                            r14 <= 4'd4;
-
-                        end
-
-                    2'b01:
-                        begin
-                            
-                            r21 <= rm1;
-                            r22 <= rm2;
-                            r23 <= rm3;
-                            r24 <= 4'd4;
-
-                        end
-
-                    2'b10:
-                        begin
-                            
-                            r31 <= rm1;
-                            r32 <= rm2;
-                            r33 <= rm3;
-                            r34 <= 4'd4;
-
-                        end
-                    
-                    2'b11:
-                        begin
-                            
-                            r41 <= rm1;
-                            r42 <= rm2;
-                            r43 <= rm3;
-                            r44 <= 4'd4;
-
-                        end
-
-                endcase
-
-                estado <= 4'b0000;
-
-                en[3] <= 1'b1;
-
-                h1 <= p1;
-                h2 <= p2;
-                h3 <= p3;
-                h4 <= p4;
-
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-
-            end
-
-        default:
-            begin
-                    
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-
-            end        
-
-    endcase
-        
-    end
-    always @ (posedge t[5])
-    begin
-
-        case(estado)
-
-        /* Seleção de contagem (vai andanddo de acordo com o apertar de botões) */
-            4'b0000:
-                begin
-                    
-                    g1 <= 4'd5;
-
-                    g2 <= 4'b0000;
-                    g3 <= 4'b0000;
-                    g4 <= 4'b0000;
-
-                    #1
-
-                    h1 <= g1;
-                    h2 <= g2;
-                    h3 <= g3;
-                    h4 <= g4;
-
-                    estado <= 4'b0001;
-
-                    /* Som do botão */    
-                    som <= 1'b1;
-                    #500
-                    som <= 1'b0;
-
-                end
-        
-            4'b0001:
-                begin
-                    
-                    g2 <= 4'd5;
-
-                    #1
-
-                    h2 <= g2;
-
-                    estado <= 4'b0010;
-
-                    en[1] <= 1'b1;
-
-                    /* Som do botão */    
-                    som <= 1'b1;
-                    #500
-                    som <= 1'b0;
-
-                end
-
-            4'b0010:
-                begin
-                    
-                    g3 <= 4'd5;
-
-                    #1
-
-                    h3 <= g3;
-
-                    estado <= 4'b0011;
-
-                    en[2] <= 1'b1;
-
-                    /* Som do botão */    
-                    som <= 1'b1;
-                    #500
-                    som <= 1'b0;
-
-                end
-        
-            4'b0011:
-                begin
-                    
-                    g4 <= 4'd5;
-
-                    #1
-
-                    h4 <= g4;
-
-                    estado <= 4'b0100;
-
-                    en[3] <= 1'b1;
-
-                    som <= 1'b1;
-                    #500
-                    som <= 1'b0;
-
-                end
-
-        /* Configuração de horário */
-        4'b0111:
-            begin
-            
-                rm1 <= 4'd5;
-
-                #1
-
-                h1 <= rm1;
-
-                estado <= 4'b1000;
-
-                en[0] <= 1'b1;
-
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-
-            end
-        
-        4'b1000:
-            begin
-                rm2 <= 4'd5;
-
-                #1
-
-                h2 <= rm2;
-
-                estado <= 4'b1001;
-
-                en[1] <= 1'b1;
-
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-            end
-
-        4'b1001:
-            begin
-                rm3 <= 4'd5;
-
-                #1
-
-                h3 <= rm3;
-
-                estado <= 4'b1010;
-
-                en[2] <= 1'b1;
-
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-            end
-
-        /* Configuração de receita */
-        4'b1011:
-            begin
-                
-                rm1 <= 4'd5;
-
-                #1
-
-                h1 <= rm1;
-
-                estado <= 4'b1100;
-
-                en[0] <= 1'b1;
-
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-
-            end
-
-        4'b1100:
-            begin
-                
-                rm2 <= 4'd5;
-
-                #1
-
-                h2 <= rm2;
-
-                estado <= 4'b1101;
-
-                en[1] <= 1'b1;
-
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-
-            end
-
-        4'b1101:
-            begin
-                
-                rm3 <= 4'd5;
-
-                #1
-
-                h3 <= rm3;
-
-                estado <= 4'b1110;
-
-                en[2] <= 1'b1;
-
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-
-            end
-        
-        4'b1110:
-            begin
-                
-                case(rec)
-
-                    2'b00:
-                        begin
-                            
-                            r11 <= rm1;
-                            r12 <= rm2;
-                            r13 <= rm3;
-                            r14 <= 4'd5;
-
-                        end
-
-                    2'b01:
-                        begin
-                            
-                            r21 <= rm1;
-                            r22 <= rm2;
-                            r23 <= rm3;
-                            r24 <= 4'd5;
-
-                        end
-
-                    2'b10:
-                        begin
-                            
-                            r31 <= rm1;
-                            r32 <= rm2;
-                            r33 <= rm3;
-                            r34 <= 4'd5;
-
-                        end
-                    
-                    2'b11:
-                        begin
-                            
-                            r41 <= rm1;
-                            r42 <= rm2;
-                            r43 <= rm3;
-                            r44 <= 4'd5;
-
-                        end
-
-                endcase
-
-                estado <= 4'b0000;
-
-                en[3] <= 1'b1;
-
-                h1 <= p1;
-                h2 <= p2;
-                h3 <= p3;
-                h4 <= p4;
-
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-
-            end
-
-        default:
-            begin
-                    
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-
-            end        
-
-    endcase
-        
-    end
-    always @ (posedge t[6])
-    begin
-
-        case(estado)
-
-        /* Seleção de contagem (vai andanddo de acordo com o apertar de botões) */
-            4'b0000:
-                begin
-                    
-                    g1 <= 4'd6;
-
-                    g2 <= 4'b0000;
-                    g3 <= 4'b0000;
-                    g4 <= 4'b0000;
-
-                    #1
-
-                    h1 <= g1;
-                    h2 <= g2;
-                    h3 <= g3;
-                    h4 <= g4;
-
-                    estado <= 4'b0001;
-
-                    /* Som do botão */    
-                    som <= 1'b1;
-                    #500
-                    som <= 1'b0;
-
-                end
-        
-            4'b0001:
-                begin
-                    
-                    g2 <= 4'd6;
-
-                    #1
-
-                    h2 <= g2;
-
-                    estado <= 4'b0010;
-
-                    en[1] <= 1'b1;
-
-                    /* Som do botão */    
-                    som <= 1'b1;
-                    #500
-                    som <= 1'b0;
-
-                end
-
-            4'b0010:
-                begin
-                    
-                    g3 <= 4'd6;
-
-                    #1
-
-                    h3 <= g3;
-
-                    estado <= 4'b0011;
-
-                    en[2] <= 1'b1;
-
-                    /* Som do botão */    
-                    som <= 1'b1;
-                    #500
-                    som <= 1'b0;
-
-                end
-        
-            4'b0011:
-                begin
-                    
-                    g4 <= 4'd6;
-
-                    #1
-
-                    h4 <= g4;
-
-                    estado <= 4'b0100;
-
-                    en[1] <= 1'b1;
-
-                    som <= 1'b1;
-                    #500
-                    som <= 1'b0;
-
-                end
-
-        /* Configuração de horário */
-        4'b0111:
-            begin
-            
-                rm1 <= 4'd6;
-
-                #1
-
-                h1 <= rm1;
-
-                estado <= 4'b1000;
-
-                en[0] <= 1'b1;
-
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-
-            end
-        
-
-
-        4'b1001:
-            begin
-                rm3 <= 4'd6;
-
-                #1
-
-                h3 <= rm3;
-
-                estado <= 4'b1010;
-
-                en[2] <= 1'b1;
-
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-            end
-
-        /* Configuração de receita */
-        4'b1011:
-            begin
-                
-                rm1 <= 4'd6;
-
-                #1
-
-                h1 <= rm1;
-
-                estado <= 4'b1100;
-
-                en[0] <= 1'b1;
-
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-
-            end
-
-        4'b1100:
-            begin
-                
-                rm2 <= 4'd6;
-
-                #1
-
-                h2 <= rm2;
-
-                estado <= 4'b1101;
-
-                en[1] <= 1'b1;
-
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-
-            end
-
-        4'b1101:
-            begin
-                
-                rm3 <= 4'd6;
-
-                #1
-
-                h3 <= rm3;
-
-                estado <= 4'b1110;
-
-                en[1] <= 1'b1;
-
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-
-            end
-        
-        4'b1110:
-            begin
-                
-                case(rec)
-
-                    2'b00:
-                        begin
-                            
-                            r11 <= rm1;
-                            r12 <= rm2;
-                            r13 <= rm3;
-                            r14 <= 4'd6;
-
-                        end
-
-                    2'b01:
-                        begin
-                            
-                            r21 <= rm1;
-                            r22 <= rm2;
-                            r23 <= rm3;
-                            r24 <= 4'd6;
-
-                        end
-
-                    2'b10:
-                        begin
-                            
-                            r31 <= rm1;
-                            r32 <= rm2;
-                            r33 <= rm3;
-                            r34 <= 4'd6;
-
-                        end
-                    
-                    2'b11:
-                        begin
-                            
-                            r41 <= rm1;
-                            r42 <= rm2;
-                            r43 <= rm3;
-                            r44 <= 4'd6;
-
-                        end
-
-                endcase
-
-                estado <= 4'b0000;
-
-                en[3] <= 1'b1;
-
-                h1 <= p1;
-                h2 <= p2;
-                h3 <= p3;
-                h4 <= p4;
-
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-
-            end
-
-        default:
-            begin
-                    
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-
-            end        
-
-    endcase
-        
-    end
-    always @ (posedge t[7])
-    begin
-
-        case(estado)
-
-        /* Seleção de contagem (vai andanddo de acordo com o apertar de botões) */
-            4'b0000:
-                begin
-                    
-                    g1 <= 4'd7;
-
-                    g2 <= 4'b0000;
-                    g3 <= 4'b0000;
-                    g4 <= 4'b0000;
-
-                    #1
-
-                    h1 <= g1;
-                    h2 <= g2;
-                    h3 <= g3;
-                    h4 <= g4;
-
-                    estado <= 4'b0001;
-
-                    /* Som do botão */    
-                    som <= 1'b1;
-                    #500
-                    som <= 1'b0;
-
-                end
-        
-            4'b0001:
-                begin
-                    
-                    g2 <= 4'd7;
-
-                    #1
-
-                    h2 <= g2;
-
-                    estado <= 4'b0010;
-
-                    en[1] <= 1'b1;
-
-                    /* Som do botão */    
-                    som <= 1'b1;
-                    #500
-                    som <= 1'b0;
-
-                end
-
-            4'b0010:
-                begin
-                    
-                    g3 <= 4'd7;
-
-                    #1
-
-                    h3 <= g3;
-
-                    estado <= 4'b0011;
-
-                    en[2] <= 1'b1;
-
-                    /* Som do botão */    
-                    som <= 1'b1;
-                    #500
-                    som <= 1'b0;
-
-                end
-        
-            4'b0011:
-                begin
-                    
-                    g4 <= 4'd7;
-
-                    #1
-
-                    h4 <= g4;
-
-                    estado <= 4'b0100;
-
-                    en[3] <= 1'b1;
-
-                    som <= 1'b1;
-                    #500
-                    som <= 1'b0;
-
-                end
-
-        /* Configuração de horário */
-        4'b0111:
-            begin
-            
-                rm1 <= 4'd7;
-
-                #1
-
-                h1 <= rm1;
-
-                estado <= 4'b1000;
-
-                en[0] <= 1'b1;
-
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-
-            end
-
-        4'b1001:
-            begin
-                rm3 <= 4'd7;
-
-                #1
-
-                h3 <= rm3;
-
-                estado <= 4'b1010;
-
-                en[2] <= 1'b1;
-
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-            end
-
-        /* Configuração de receita */
-        4'b1011:
-            begin
-                
-                rm1 <= 4'd7;
-
-                #1
-
-                h1 <= rm1;
-
-                estado <= 4'b1100;
-
-                en[0] <= 1'b1;
-
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-
-            end
-
-        4'b1100:
-            begin
-                
-                rm2 <= 4'd7;
-
-                #1
-
-                h2 <= rm2;
-
-                estado <= 4'b1101;
-
-                en[1] <= 1'b1;
-
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-
-            end
-
-        4'b1101:
-            begin
-                
-                rm3 <= 4'd7;
-
-                #1
-
-                h3 <= rm3;
-
-                estado <= 4'b1110;
-
-                en[2] <= 1'b1;
-
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-
-            end
-        
-        4'b1110:
-            begin
-                
-                case(rec)
-
-                    2'b00:
-                        begin
-                            
-                            r11 <= rm1;
-                            r12 <= rm2;
-                            r13 <= rm3;
-                            r14 <= 4'd7;
-
-                        end
-
-                    2'b01:
-                        begin
-                            
-                            r21 <= rm1;
-                            r22 <= rm2;
-                            r23 <= rm3;
-                            r24 <= 4'd7;
-
-                        end
-
-                    2'b10:
-                        begin
-                            
-                            r31 <= rm1;
-                            r32 <= rm2;
-                            r33 <= rm3;
-                            r34 <= 4'd7;
-
-                        end
-                    
-                    2'b11:
-                        begin
-                            
-                            r41 <= rm1;
-                            r42 <= rm2;
-                            r43 <= rm3;
-                            r44 <= 4'd7;
-
-                        end
-
-                endcase
-
-                estado <= 4'b0000;
-
-                en[3] <= 1'b1;
-
-                h1 <= p1;
-                h2 <= p2;
-                h3 <= p3;
-                h4 <= p4;
-
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-
-            end
-
-        default:
-            begin
-                    
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-
-            end        
-
-    endcase
-        
-    end
-    always @ (posedge t[8])
-    begin
-
-        case(estado)
-
-        /* Seleção de contagem (vai andanddo de acordo com o apertar de botões) */
-            4'b0000:
-                begin
-                    
-                    g1 <= 4'd8;
-
-                    g2 <= 4'b0000;
-                    g3 <= 4'b0000;
-                    g4 <= 4'b0000;
-
-                    #1
-
-                    h1 <= g1;
-                    h2 <= g2;
-                    h3 <= g3;
-                    h4 <= g4;
-
-                    estado <= 4'b0001;
-
-                    /* Som do botão */    
-                    som <= 1'b1;
-                    #500
-                    som <= 1'b0;
-
-                end
-        
-            4'b0001:
-                begin
-                    
-                    g2 <= 4'd8;
-
-                    #1
-
-                    h2 <= g2;
-
-                    estado <= 4'b0010;
-
-                    en[1] <= 1'b1;
-
-                    /* Som do botão */    
-                    som <= 1'b1;
-                    #500
-                    som <= 1'b0;
-
-                end
-
-            4'b0010:
-                begin
-                    
-                    g3 <= 4'd8;
-
-                    #1
-
-                    h3 <= g3;
-
-                    estado <= 4'b0011;
-
-                    en[2] <= 1'b1;
-
-                    /* Som do botão */    
-                    som <= 1'b1;
-                    #500
-                    som <= 1'b0;
-
-                end
-        
-            4'b0011:
-                begin
-                    
-                    g4 <= 4'd8;
-
-                    #1
-
-                    h4 <= g4;
-
-                    estado <= 4'b0100;
-
-                    en[3] <= 1'b1;
-
-                    som <= 1'b1;
-                    #500
-                    som <= 1'b0;
-
-                end
-
-        /* Configuração de horário */
-        4'b0111:
-            begin
-            
-                rm1 <= 4'd8;
-
-                #1
-
-                h1 <= rm1;
-
-                estado <= 4'b1000;
-
-                en[0] <= 1'b1;
-
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-
-            end
-
-        4'b1001:
-            begin
-                rm3 <= 4'd8;
-
-                #1
-
-                h3 <= rm3;
-
-                estado <= 4'b1010;
-
-                en[2] <= 1'b1;
-
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-            end
-
-        /* Configuração de receita */
-        4'b1011:
-            begin
-                
-                rm1 <= 4'd8;
-
-                #1
-
-                h1 <= rm1;
-
-                estado <= 4'b1100;
-
-                en[0] <= 1'b1;
-
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-
-            end
-
-        4'b1100:
-            begin
-                
-                rm2 <= 4'd8;
-
-                #1
-
-                h2 <= rm2;
-
-                estado <= 4'b1101;
-
-                en[1] <= 1'b1;
-
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-
-            end
-
-        4'b1101:
-            begin
-                
-                rm3 <= 4'd8;
-
-                #1
-
-                h3 <= rm3;
-
-                estado <= 4'b1110;
-
-                en[2] <= 1'b1;
-
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-
-            end
-        
-        4'b1110:
-            begin
-                
-                case(rec)
-
-                    2'b00:
-                        begin
-                            
-                            r11 <= rm1;
-                            r12 <= rm2;
-                            r13 <= rm3;
-                            r14 <= 4'd8;
-
-                        end
-
-                    2'b01:
-                        begin
-                            
-                            r21 <= rm1;
-                            r22 <= rm2;
-                            r23 <= rm3;
-                            r24 <= 4'd8;
-
-                        end
-
-                    2'b10:
-                        begin
-                            
-                            r31 <= rm1;
-                            r32 <= rm2;
-                            r33 <= rm3;
-                            r34 <= 4'd8;
-
-                        end
-                    
-                    2'b11:
-                        begin
-                            
-                            r41 <= rm1;
-                            r42 <= rm2;
-                            r43 <= rm3;
-                            r44 <= 4'd8;
-
-                        end
-
-                endcase
-
-                estado <= 4'b0000;
-
-                en[3] <= 1'b1;
-
-                h1 <= p1;
-                h2 <= p2;
-                h3 <= p3;
-                h4 <= p4;
-
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-
-            end
-
-        default:
-            begin
-                    
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-
-            end        
-
-    endcase
-        
-    end
-    always @ (posedge t[9])
-    begin
-
-        case(estado)
-
-        /* Seleção de contagem (vai andanddo de acordo com o apertar de botões) */
-            4'b0000:
-                begin
-                    
-                    g1 <= 4'd9;
-
-                    g2 <= 4'b0000;
-                    g3 <= 4'b0000;
-                    g4 <= 4'b0000;
-
-                    #1
-
-                    h1 <= g1;
-                    h2 <= g2;
-                    h3 <= g3;
-                    h4 <= g4;
-
-                    estado <= 4'b0001;
-
-                    /* Som do botão */    
-                    som <= 1'b1;
-                    #500
-                    som <= 1'b0;
-
-                end
-        
-            4'b0001:
-                begin
-                    
-                    g2 <= 4'd9;
-
-                    #1
-
-                    h2 <= g2;
-
-                    estado <= 4'b0010;
-
-                    en[1] <= 1'b1;
-
-                    /* Som do botão */    
-                    som <= 1'b1;
-                    #500
-                    som <= 1'b0;
-
-                end
-
-            4'b0010:
-                begin
-                    
-                    g3 <= 4'd9;
-
-                    #1
-
-                    h3 <= g3;
-
-                    estado <= 4'b0011;
-
-                    en[2] <= 1'b1;
-
-                    /* Som do botão */    
-                    som <= 1'b1;
-                    #500
-                    som <= 1'b0;
-
-                end
-        
-            4'b0011:
-                begin
-                    
-                    g4 <= 4'd9;
-
-                    #1
-
-                    h4 <= g4;
-
-                    estado <= 4'b0100;
-
-                    en[3] <= 1'b1;
-
-                    som <= 1'b1;
-                    #500
-                    som <= 1'b0;
-
-                end
-
-        /* Configuração de horário */
-        4'b0111:
-            begin
-            
-                rm1 <= 4'd9;
-
-                #1
-
-                h1 <= rm1;
-
-                estado <= 4'b1000;
-
-                en[0] <= 1'b1;
-
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-
-            end
-
-        4'b1001:
-            begin
-                rm3 <= 4'd9;
-
-                #1
-
-                h3 <= rm3;
-
-                estado <= 4'b1010;
-
-                en[2] <= 1'b1;
-
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-            end
-
-        /* Configuração de receita */
-        4'b1011:
-            begin
-                
-                rm1 <= 4'd9;
-
-                #1
-
-                h1 <= rm1;
-
-                estado <= 4'b1100;
-
-                en[0] <= 1'b1;
-
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-
-            end
-
-        4'b1100:
-            begin
-                
-                rm2 <= 4'd9;
-
-                #1
-
-                h2 <= rm2;
-
-                estado <= 4'b1101;
-
-                en[1] <= 1'b1;
-
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-
-            end
-
-        4'b1101:
-            begin
-                
-                rm3 <= 4'd9;
-
-                #1
-
-                h3 <= rm3;
-
-                estado <= 4'b1110;
-
-                en[2] <= 1'b1;
-
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-
-            end
-        
-        4'b1110:
-            begin
-                
-                case(rec)
-
-                    2'b00:
-                        begin
-                            
-                            r11 <= rm1;
-                            r12 <= rm2;
-                            r13 <= rm3;
-                            r14 <= 4'd9;
-
-                        end
-
-                    2'b01:
-                        begin
-                            
-                            r21 <= rm1;
-                            r22 <= rm2;
-                            r23 <= rm3;
-                            r24 <= 4'd9;
-
-                        end
-
-                    2'b10:
-                        begin
-                            
-                            r31 <= rm1;
-                            r32 <= rm2;
-                            r33 <= rm3;
-                            r34 <= 4'd9;
-
-                        end
-                    
-                    2'b11:
-                        begin
-                            
-                            r41 <= rm1;
-                            r42 <= rm2;
-                            r43 <= rm3;
-                            r44 <= 4'd9;
-
-                        end
-
-                endcase
-
-                estado <= 4'b0000;
-
-                en[3] <= 1'b1;
-
-                h1 <= p1;
-                h2 <= p2;
-                h3 <= p3;
-                h4 <= p4;
-
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-
-            end
-
-        default:
-            begin
-                    
-                som <= 1'b1;
-                #500
-                som <= 1'b0;
-
-            end        
-
-    endcase
-        
-    end
 
 
     /* LEDs piscando para indicar qual é o dígito sendo alterado */
