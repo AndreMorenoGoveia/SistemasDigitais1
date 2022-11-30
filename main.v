@@ -75,7 +75,7 @@ module main(t, conf, r, porta,
 
 
     /** Teclado **/
-    reg [4:0] num;
+    reg [3:0] num;
 
 
 
@@ -91,6 +91,11 @@ module main(t, conf, r, porta,
     reg ha2;
     reg ha3;
     reg ha4;
+    reg ha5;
+    reg [3:0] h1a;
+    reg [3:0] h2a;
+    reg [3:0] h3a;
+    reg [3:0] h4a;
     reg en1;
 
 
@@ -352,13 +357,15 @@ module main(t, conf, r, porta,
             ha2 <= 1'b0;
             ha3 <= 1'b0;
             ha4 <= 1'b0;
+            ha5 <= 1'b0;
     
             en1 <= 1'b0;
 
         end
 
     /* Atualiza o valor do visor */
-    always @ (posedge ha1 or posedge ha2 or posedge ha3 or posedge ga2 or posedge ha4) 
+    always @ (posedge ha1 or posedge ha2 or posedge ha3 or
+              posedge ga2 or posedge ha4 or posedge ha5) 
         begin
         
             if(ha1 | ha3 | ha4)
@@ -388,6 +395,16 @@ module main(t, conf, r, porta,
                     h2 = g2a2;
                     h3 = g3a2;
                     h4 = g4a2;
+
+                end
+
+            else if(ha5)
+                begin
+
+                    h1 = h1a;
+                    h2 = h2a;
+                    h3 = h3a;
+                    h4 = h4a;
 
                 end
 
@@ -550,7 +567,7 @@ module main(t, conf, r, porta,
         end
 
     /* Alterando o valor do cronômetro */
-    always @ (posedge ga1 or posedge ga2)
+    always @ (posedge ga1 or posedge ga2 or posedge ha5)
         begin
             
             if(ga1)
@@ -570,6 +587,16 @@ module main(t, conf, r, porta,
                     g2 = g2a2;
                     g3 = g3a2;
                     g4 = g4a2;
+
+                end
+
+            else if(ha5)
+                begin
+                    
+                    g1 = h1a;
+                    g2 = h2a;
+                    g3 = h3a;
+                    g4 = h4a;
 
                 end
 
@@ -742,12 +769,17 @@ module main(t, conf, r, porta,
 
             else if(t[9]) num <= 4'd9;
 
+            #1
+
 
             /* Realiza as ações de acordo com o estado */
             case(estado)
 
         /* Seleção de contagem (o dígito a ser alterado
         vai andanddo de acordo com o apertar de botões) */
+
+            /* Caso esteja no relógio padrão é configurado para que
+               o primeiro numero seja o digitado e os outros sejam 0 */
             4'b0000:
                 begin
                     
@@ -755,7 +787,9 @@ module main(t, conf, r, porta,
                     g2a2 = 4'b0000;
                     g3a2 = 4'b0000;
                     g4a2 = 4'b0000;
+
                     ga2 = 1'b1;
+
 
                     est3 [3:0] = 4'b0001;
 
@@ -773,6 +807,7 @@ module main(t, conf, r, porta,
 
                 end
         
+            /* O segundo dígito é alterado e o terceiro passa a ser o próximo */
             4'b0001:
                 begin
                     
@@ -794,6 +829,7 @@ module main(t, conf, r, porta,
 
                 end
 
+            /* O terceiro dígito é alterado e o quarto passa a ser o próximo */
             4'b0010:
                 begin
                     
@@ -814,29 +850,37 @@ module main(t, conf, r, porta,
                     s2 = 1'b0;
 
                 end
-        
+
+
+            /* Caso o quarto dígito for diferente de zero, o visor entra em estado de cheio */
             4'b0011:
                 begin
+
+                    if(num != 4'b0000)
+                        begin
                     
-                    g4a2 = num;
-                    ga2 = 1'b1;;
+                            g4a2 = num;
+                            ga2 = 1'b1;
 
-                    est3 [3:0] = 4'b0100;
-                    est3 [4] = 1'b1;
+                            est3 [3:0] = 4'b0100;
+                            est3 [4] = 1'b1;
 
-                    s2 = 1'b1;
+                            s2 = 1'b1;
 
-                    #1
+                            #1
 
-                    ga2 = 1'b0;
+                            ga2 = 1'b0;
 
-                    est3 [4] = 1'b0;
+                            est3 [4] = 1'b0;
 
-                    s2 = 1'b0;
+                            s2 = 1'b0;
+
+                        end
 
                 end
 
         /* Configuração de horário */
+        /* É alterado o primeiro dígito */
         4'b0111:
             begin
             
@@ -861,36 +905,51 @@ module main(t, conf, r, porta,
 
             end
         
+        /* É alterado o segundo dígito caso este seja menor que 6 */
         4'b1000:
             begin
 
+                if(num < 4'd6)
+                    begin
+
                     
-                g2a2 = num;
-                ga2 = 1'b1;
+                        g2a2 = num;
+                        ga2 = 1'b1;
 
-                est3 [3:0] = 4'b1001;
-                est3 [4] = 1'b1;
+                        est3 [3:0] = 4'b1001;
+                        est3 [4] = 1'b1;
 
-                s2 = 1'b1;
+                        s2 = 1'b1;
 
-                #1
+                        #1
 
-                ga2 = 1'b0;
+                        ga2 = 1'b0;
 
-                est3 [4] = 1'b0;
+                        est3 [4] = 1'b0;
 
-                s2 = 1'b0;
+                        s2 = 1'b0;
 
+                    end
+
+                else
+                    begin
+
+                        s2 = 1'b1;
+                        #1
+                        s2 = 1'b0;
+
+                    end
 
             end
 
+        /* É alterado o terceiro dígito */
         4'b1001:
             begin
 
                 g3a2 = num;
                 ga2 = 1'b1;
 
-                est3 [3:0] = 4'b1001;
+                est3 [3:0] = 4'b1010;
                 est3 [4] = 1'b1;
 
                 s2 = 1'b1;
@@ -904,38 +963,55 @@ module main(t, conf, r, porta,
                 s2 = 1'b0;
 
             end
-        
+
+        /* É alterado o quarto dígito e, caso seja menor que 3 e, dependendo da escolha anterior,
+           menor que 2, o reógio padrão é atualizado */
         4'b1010:
             begin
 
-                p1a2 = g1a2;
-                p2a2 = g2a2;
-                p3a2 = g3a2;
-                p4a2 = g4a2;
-                pa = 1'b1;
+                if((num < 4'd3 & g3a2 < 4'd4) | num <  4'd2)
+                    begin
 
-                #1
+                        p1a2 = g1a2;
+                        p2a2 = g2a2;
+                        p3a2 = g3a2;
+                        p4a2 = g4a2;
+                        pa = 1'b1;
 
-                ga2 = 1'b1;
+                        #1
 
-                est3 [3:0] = 4'b0000;
-                est3 [4] = 1'b1;
+                        ga2 = 1'b1;
 
-                s2 = 1'b1;
+                        est3 [3:0] = 4'b0000;
+                        est3 [4] = 1'b1;
 
-                #1
+                        s2 = 1'b1;
 
-                pa = 1'b0;
+                        #1
 
-                ga2 = 1'b0;
+                        pa = 1'b0;
 
-                est3 [4] = 1'b0;
+                        ga2 = 1'b0;
 
-                s2 = 1'b0;
+                        est3 [4] = 1'b0;
+
+                        s2 = 1'b0;
+
+                    end
+
+                else
+                    begin
+
+                        s2 = 1'b1;
+                        #1
+                        s2 = 1'b0;
+    
+                    end
 
             end
 
         /* Configuração de receita */
+        /* É alterado o primeiro dígito da receita */
         4'b1011:
             begin
                 
@@ -960,6 +1036,7 @@ module main(t, conf, r, porta,
 
             end
 
+        /* É alterado o segundo dígito da receita */
         4'b1100:
             begin
                 
@@ -981,6 +1058,7 @@ module main(t, conf, r, porta,
 
             end
 
+        /* É alterado o terceiro dígito da receita */
         4'b1101:
             begin
                 
@@ -1002,6 +1080,8 @@ module main(t, conf, r, porta,
 
             end
         
+        /* É alterado o quarto dígito da receita, a receita na memória é atualizada
+           e retorna ao relógio padrão */
         4'b1110:
             begin
                 
@@ -1071,6 +1151,7 @@ module main(t, conf, r, porta,
 
             end
 
+        /* Caso algum botão seja pressionado sairá um som */
         default:
             begin
                     
@@ -1234,12 +1315,62 @@ module main(t, conf, r, porta,
         else if(estado == 4'b0000)
         begin
 
+
+            case(rec)
+
+                1'b00:
+                    begin
+                        
+                        h1a = r11;
+                        h2a = r12;
+                        h3a = r13;
+                        h4a = r14;
+
+                    end
+
+                1'b01:
+                    begin
+                        
+                        h1a = r21;
+                        h2a = r22;
+                        h3a = r23;
+                        h4a = r24;
+
+                    end
+
+                1'b10:
+                    begin
+                        
+                        h1a = r31;
+                        h2a = r32;
+                        h3a = r33;
+                        h4a = r34;
+
+                    end
+
+                1'b11:
+                    begin
+                        
+                        h1a = r41;
+                        h2a = r42;
+                        h3a = r43;
+                        h4a = r44;
+
+                    end
+
+
+            endcase
+
+            ha5 = 1'b1;
+
             est6[1] = 1'b0;
             est6[0] = 1'b1;
 
             #1
 
             est6[0] = 1'b0;
+
+            ha5 = 1'b0;
 
 
         end

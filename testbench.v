@@ -30,7 +30,7 @@ r = auxr,
 porta = auxp;
 
 initial
- begin
+    begin
     
     auxt <= 12'b000000000000;
     auxc <= 1'b0;
