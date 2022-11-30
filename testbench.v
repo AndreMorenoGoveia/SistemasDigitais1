@@ -62,7 +62,7 @@ always @ (*)
             num1 = 4'd4;
         else if(led1 == 7'b1101101)
             num1 = 4'd5;
-        else if(led1 == 7'b1011111)
+        else if(led1 == 7'b1111101)
             num1 = 4'd6;
         else if(led1 == 7'b0000111)
             num1 = 4'd7;
@@ -85,7 +85,7 @@ always @ (*)
             num2 = 4'd4;
         else if(led2 == 7'b1101101)
             num2 = 4'd5;
-        else if(led2 == 7'b1011111)
+        else if(led2 == 7'b1111101)
             num2 = 4'd6;
         else if(led2== 7'b0000111)
             num2 = 4'd7;
@@ -109,7 +109,7 @@ always @ (*)
             num3 = 4'd4;
         else if(led3 == 7'b1101101)
             num3 = 4'd5;
-        else if(led3 == 7'b1011111)
+        else if(led3 == 7'b1111101)
             num3 = 4'd6;
         else if(led3 == 7'b0000111)
             num3 = 4'd7;
@@ -133,7 +133,7 @@ always @ (*)
             num4 = 4'd4;
         else if(led4 == 7'b1101101)
             num4 = 4'd5;
-        else if(led4 == 7'b1011111)
+        else if(led4 == 7'b1111101)
             num4 = 4'd6;
         else if(led4 == 7'b0000111)
             num4 = 4'd7;
