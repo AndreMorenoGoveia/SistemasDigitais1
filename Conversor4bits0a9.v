@@ -1,11 +1,3 @@
-/*****************************************************************************************/
-/**																						**/
-/** 	Conversor4bits0a9.v																**/
-/** 	Descrição: Operações combinatórias que convertem bits em numeros visuais		**/
-/**		em um display LED de 7 segmentos.												**/
-/**																						**/
-/*****************************************************************************************/
-
 module Conversor4bits0a9(ain, bin, cin, din, en,
                          aout, bout, cout, dout, eout, fout, gout);
 

@@ -30,7 +30,7 @@ module main(t, conf, r, porta,
        0001 - Seleção de contagem 1
        0010 - Seleção de contagem 2
        0011 - Seleção de contagem 3
-       0100 - Seleção de conragem cheia
+       0100 - Seleção de contagem cheia
        0101 - Relógio regressivo
        0110 - Comida pronta
        0111 - Configuração de horário 1
@@ -136,9 +136,6 @@ module main(t, conf, r, porta,
     reg [3:0] r42;
     reg [3:0] r43;
     reg [3:0] r44;
-    reg [3:0] rm1;
-    reg [3:0] rm2;
-    reg [3:0] rm3;
     reg [1:0] rec;
 
 
@@ -187,7 +184,7 @@ module main(t, conf, r, porta,
        .eout(led3[4]), .fout(led3[5]), .gout(led3[6]));
 
     Conversor4bits0a9 
-    m4(.ain(h4[0]), .bin(h4[1]), .cin(h4[2]), .din(h4[3]), .en(en[3]),
+    m4(.ain(h4[3]), .bin(h4[2]), .cin(h4[1]), .din(h4[0]), .en(en[3]),
        .aout(led4[0]), .bout(led4[1]), .cout(led4[2]), .dout(led4[3]),
        .eout(led4[4]), .fout(led4[5]), .gout(led4[6]));
 
@@ -642,14 +639,12 @@ module main(t, conf, r, porta,
                                             if(g4 != 4'b0000)
                                                 g4a1 = g4 - 4'b0001;
 
-                                            else
-                                                g4a1 = 4'b1001;
 
                                             g3a1 = 4'b1001;
 
                                         end
 
-                                    g2a1 = 4'b1001;
+                                    g2a1 = 4'b0101;
 
                                 end
 
@@ -975,10 +970,11 @@ module main(t, conf, r, porta,
                         p1a2 = g1a2;
                         p2a2 = g2a2;
                         p3a2 = g3a2;
-                        p4a2 = g4a2;
-                        pa = 1'b1;
+                        p4a2 = num;
 
-                        #1
+                        g4a2 = num;
+
+                        pa = 1'b1;
 
                         ga2 = 1'b1;
 
@@ -1169,6 +1165,8 @@ module main(t, conf, r, porta,
     always @(posedge t[10]) 
     begin
 
+        /* Em algum estado de seleção de contagem o microndas
+           inicia seu aquecimento e relógio regressivo */
         if((estado >= 4'b0001) & (estado <= 4'b0100) & (porta != 1'b1))
             begin
 
@@ -1194,6 +1192,7 @@ module main(t, conf, r, porta,
     always @(posedge t[11]) 
     begin
 
+        /* Caso a comida esteja sendo preparada ele volta ao tempo restante */
         if(estado == 4'b0101)
         begin
             
@@ -1232,6 +1231,7 @@ module main(t, conf, r, porta,
 
         end
 
+        /* Em outros estados o microondas volta ao relógio padrão */
         else if((estado != 4'b0000) & (estado != 4'b0110))
         begin
             
@@ -1318,7 +1318,7 @@ module main(t, conf, r, porta,
 
             case(rec)
 
-                1'b00:
+                2'b00:
                     begin
                         
                         h1a = r11;
@@ -1328,7 +1328,7 @@ module main(t, conf, r, porta,
 
                     end
 
-                1'b01:
+                2'b01:
                     begin
                         
                         h1a = r21;
@@ -1338,7 +1338,7 @@ module main(t, conf, r, porta,
 
                     end
 
-                1'b10:
+                2'b10:
                     begin
                         
                         h1a = r31;
@@ -1348,7 +1348,7 @@ module main(t, conf, r, porta,
 
                     end
 
-                1'b11:
+                2'b11:
                     begin
                         
                         h1a = r41;
@@ -1383,7 +1383,6 @@ module main(t, conf, r, porta,
 
 
     /** Configuração **/
-
     /* O usuário clica no botão de configuração */
     always @ (posedge conf) 
     begin
