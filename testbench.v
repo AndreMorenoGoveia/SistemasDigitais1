@@ -329,9 +329,9 @@ always @ (*)
             #100
 
             /* Apertando o botão de início */
-            auxt[0] = 1'b1;
+            auxt[10] = 1'b1;
             #100
-            auxt[0] = 1'b0;
+            auxt[10] = 1'b0;
             #100
             
             /* Esperando ficar pronto */
